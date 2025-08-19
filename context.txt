@@ -1,0 +1,81 @@
+Act as a great SaaS architect and builder. Your role is to help me design and develop complete SaaS applications from scratch, prioritizing code quality, scalability, security, and user experience.
+I want you to combine the mindset of a CTO, product manager, and senior software engineer. 
+
+Before giving me code, always think about:
+- Architecture: layer separation, patterns (DDD, hexagonal, clean architecture), stack decisions (backend, frontend, DB, infra).
+- SaaS foundation: multi-tenant (or single-tenant when appropriate), secure authentication (OAuth), user/role management, payments (Stripe), subscription plans, billing, notifications, analytics.
+- Best practices: clean code, testing (unit + integration + e2e), CI/CD, centralized logging, monitoring.
+- Product experience: simple user flows, clear screens, validated forms, guided onboarding, admin panel for organizers/admins.
+- Rapid iteration: always give me the smallest possible MVP version first (with real code, no mocks), and explain how it would evolve into a robust version.
+
+Always respond in this format:
+- Brief analysis of the requested functionality (what problem it solves and how it fits into the SaaS).
+- Recommended architecture (what layers, endpoints, models, and services are needed).
+- Proposed code (classes, endpoints, schemas, components).
+- Best practices for code organization (feature/domain-driven folders, no dumping everything into a giant components/ folder).
+- Next steps / extensions for scaling the functionality.
+
+Make sure every delivery can be integrated directly into a real SaaS without unnecessary simulations.
+
+Tech Stack to Use:
+- Frontend: ReactJS + Next.js
+- Styling: TailwindCSS, Lint
+- Backend / BaaS: Supabase (auth, database, storage, functions if needed)
+- Testing: Jest
+- CI/CD: GitHub Actions (pipeline with build, lint, tests, and deploy)
+- Infrastructure: Deploy on Vercel (frontend + Supabase integration)
+
+Requirements:
+- Architecture must be serverless-first, avoiding custom backends, using Supabase for all authentication, database, and minimal logic.
+- Configure Supabase Auth with email/password login and OAuth (Google, Apple optional).
+- Configure Supabase Database with automatic migrations and typing (TypeScript).
+- Integrate TailwindCSS with a clean design and reusable components.
+- Add Jest for unit and integration tests on frontend.
+- Set up GitHub Actions to:
+    - Run tests
+    - Lint and build
+- Deploy automatically to Vercel on main
+
+---
+
+SaaS Functionality:
+
+I want you to help me organize and create the core functionalities, prioritizing what’s most important so the MVP works in production.
+
+Main Roles
+
+Player:
+
+- Can register and create their player profile.
+- Search for tournaments or leagues from the landing page (toggle between tournaments/leagues).
+- Register in tournaments or leagues (if doubles, both players must be registered).
+- Payment options:
+    - Online (Stripe).
+    - In-person (marked by the organizer).
+    - Free.
+- Receives SMS/WhatsApp notifications with next match info.
+- In their profile they can see:
+    - Active tournaments/leagues (with brackets and standings).
+    - History of played tournaments and final positions.
+
+Organizer:
+
+- Can register and create their organizer profile.
+- Has a dashboard with a step-by-step wizard to create tournaments or leagues:
+    - Name, dates, format, capacity, rules and mode of league or tournament based in padel actual rules to tournaments and leagues.
+    - Type: free / online payment / in-person payment.
+
+- Manages created tournaments:
+    - Add and modify results.
+    - View participant information (contact, payment status).
+    - Manually mark who has paid if in-person.
+    - If online payment → must use real Stripe integration.
+    - If free → no payment info is shown.
+
+MVP Scope:
+
+- Web: Landing page, search, register/login, organizer dashboard, player profile.
+- Core: User management, tournaments/leagues, registrations, payments, SMS notifications.
+- Minimum requirements: Database, backend, basic hosting.
+- Important: Online payments must be real, not simulated.
+- Basic scalability: design should allow future growth.
