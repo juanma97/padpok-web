@@ -140,6 +140,25 @@ export const useAuth = () => {
     return { error }
   }
 
+  // Función para iniciar sesión con Google
+  const signInWithGoogle = async () => {
+    setAuthState(prev => ({ ...prev, loading: true, error: null }))
+    
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    })
+
+    if (error) {
+      setAuthState(prev => ({ ...prev, error, loading: false }))
+      return { error }
+    }
+
+    return { data, error: null }
+  }
+
   return {
     ...authState,
     signIn,
@@ -147,6 +166,7 @@ export const useAuth = () => {
     signOut,
     resetPassword,
     updatePassword,
+    signInWithGoogle,
     isAuthenticated: !!authState.user
   }
 }
