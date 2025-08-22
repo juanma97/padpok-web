@@ -19,8 +19,18 @@ export default function AuthCallback() {
         }
 
         if (data.session) {
-          // Usuario autenticado exitosamente
-          router.push('/dashboard')
+          // Verificar si es la primera vez que se autentica
+          const user = data.session.user
+          const isNewUser = user.app_metadata?.provider && 
+                           new Date(user.created_at).getTime() > (Date.now() - 60000) // Creado en el último minuto
+          
+          if (isNewUser) {
+            // Primera vez, redirigir a completar perfil
+            router.push('/complete-profile')
+          } else {
+            // Usuario existente, redirigir al dashboard
+            router.push('/dashboard')
+          }
         } else {
           // No hay sesión, redirigir al login
           router.push('/')
