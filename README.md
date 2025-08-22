@@ -77,6 +77,45 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ```
 
+## 🗄️ Esquema de Base de Datos
+
+### Tabla `users`
+
+```sql
+CREATE TABLE users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  auth_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  email VARCHAR NOT NULL,
+  nombre VARCHAR NOT NULL,
+  direccion TEXT NOT NULL,
+  telefono VARCHAR NOT NULL,
+  email_contacto VARCHAR NOT NULL,
+  instagram VARCHAR,
+  registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(auth_user_id)
+);
+```
+
+### Políticas de Seguridad (RLS)
+
+```sql
+-- Habilitar RLS
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+-- Los usuarios solo pueden ver y editar su propio perfil
+CREATE POLICY "Users can view own profile" ON users
+  FOR SELECT USING (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can update own profile" ON users
+  FOR UPDATE USING (auth.uid() = auth_user_id);
+
+-- Solo usuarios autenticados pueden crear su perfil
+CREATE POLICY "Users can create own profile" ON users
+  FOR INSERT WITH CHECK (auth.uid() = auth_user_id);
+```
+
 ### Comandos de Desarrollo
 
 ```bash

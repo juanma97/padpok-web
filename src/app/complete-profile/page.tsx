@@ -3,12 +3,13 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
+import { UserService } from '@/infrastructure/database/userService'
 
 interface ProfileData {
-  nombre: string
-  direccion: string
-  telefono: string
-  emailContacto: string
+  name: string
+  address: string
+  phone: string
+  contact_email: string
   instagram: string
 }
 
@@ -16,11 +17,12 @@ export default function CompleteProfilePage() {
   const router = useRouter()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState<ProfileData>({
-    nombre: user?.user_metadata?.full_name || '',
-    direccion: '',
-    telefono: '',
-    emailContacto: user?.email || '',
+    name: user?.user_metadata?.full_name || '',
+    address: '',
+    phone: '',
+    contact_email: user?.email || '',
     instagram: ''
   })
 
@@ -35,28 +37,56 @@ export default function CompleteProfilePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
+
+    if (!user) {
+      setError('Usuario no autenticado')
+      setIsLoading(false)
+      return
+    }
 
     try {
-      // TODO: Guardar datos en base de datos
-      console.log('Datos del perfil:', formData)
-      
-      // Simular guardado
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Preparar datos para guardar en base de datos
+      const userData = {
+        auth_user_id: user.id,
+        email: user.email || '',
+        name: formData.name.trim(),
+        address: formData.address.trim(),
+        phone: formData.phone.trim(),
+        contact_email: formData.contact_email.trim(),
+        instagram: formData.instagram.trim() || null
+      }
+
+      // Guardar en base de datos
+      const { user: savedUser, error: saveError } = await UserService.createUser(userData)
+
+      if (saveError) {
+        setError(saveError)
+        return
+      }
+
+      if (!savedUser) {
+        setError('Error inesperado al guardar los datos')
+        return
+      }
+
+      console.log('Perfil guardado exitosamente:', savedUser)
       
       // Redirigir al dashboard
       router.push('/dashboard')
     } catch (error) {
       console.error('Error al guardar perfil:', error)
+      setError('Error inesperado. Por favor, inténtalo de nuevo.')
     } finally {
       setIsLoading(false)
     }
   }
 
   const isFormValid = () => {
-    return formData.nombre.trim() && 
-           formData.direccion.trim() && 
-           formData.telefono.trim() && 
-           formData.emailContacto.trim()
+    return formData.name.trim() && 
+           formData.address.trim() && 
+           formData.phone.trim() && 
+           formData.contact_email.trim()
   }
 
   return (
@@ -70,13 +100,19 @@ export default function CompleteProfilePage() {
           </div>
 
           <form onSubmit={handleSubmit} className="profile-form">
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+
             <div className="form-group">
-              <label htmlFor="nombre">Nombre completo *</label>
+              <label htmlFor="name">Nombre completo *</label>
               <input
                 type="text"
-                id="nombre"
-                name="nombre"
-                value={formData.nombre}
+                id="name"
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Ingresa tu nombre completo"
                 required
@@ -84,12 +120,12 @@ export default function CompleteProfilePage() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="direccion">Dirección *</label>
+              <label htmlFor="address">Dirección *</label>
               <input
                 type="text"
-                id="direccion"
-                name="direccion"
-                value={formData.direccion}
+                id="address"
+                name="address"
+                value={formData.address}
                 onChange={handleInputChange}
                 placeholder="Ingresa tu dirección completa"
                 required
@@ -97,12 +133,12 @@ export default function CompleteProfilePage() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="telefono">Teléfono de contacto *</label>
+              <label htmlFor="phone">Teléfono de contacto *</label>
               <input
                 type="tel"
-                id="telefono"
-                name="telefono"
-                value={formData.telefono}
+                id="phone"
+                name="phone"
+                value={formData.phone}
                 onChange={handleInputChange}
                 placeholder="+34 123 456 789"
                 required
@@ -110,12 +146,12 @@ export default function CompleteProfilePage() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="emailContacto">Email de contacto *</label>
+              <label htmlFor="contact_email">Email de contacto *</label>
               <input
                 type="email"
-                id="emailContacto"
-                name="emailContacto"
-                value={formData.emailContacto}
+                id="contact_email"
+                name="contact_email"
+                value={formData.contact_email}
                 onChange={handleInputChange}
                 placeholder="tu@email.com"
                 required
