@@ -30,3 +30,36 @@ export const HTTP_STATUS = {
   NOT_FOUND: 404,
   INTERNAL_SERVER_ERROR: 500,
 } as const;
+
+export const SUPABASE_CONFIG = {
+  TABLES: {
+    PROFILES: 'profiles',
+    PRODUCTS: 'products',
+    ORDERS: 'orders',
+    ORDER_ITEMS: 'order_items',
+  },
+  AUTH: {
+    REDIRECT_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    PASSWORD_MIN_LENGTH: 6,
+  },
+  STORAGE: {
+    BUCKETS: {
+      AVATARS: 'avatars',
+      PRODUCTS: 'product-images',
+    },
+  },
+} as const;
+
+export const ORDER_STATUS = {
+  PENDING: 'pending',
+  PROCESSING: 'processing',
+  SHIPPED: 'shipped',
+  DELIVERED: 'delivered',
+  CANCELLED: 'cancelled',
+} as const;
+
+export const USER_ROLES = {
+  ADMIN: 'admin',
+  USER: 'user',
+  GUEST: 'guest',
+} as const;

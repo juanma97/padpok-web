@@ -8,6 +8,7 @@ Una aplicación web moderna desarrollada con React.js, Next.js, CSS y TypeScript
 - **Next.js** - Framework de React para aplicaciones full-stack
 - **TypeScript** - Superset tipado de JavaScript
 - **CSS** - Estilos puros sin frameworks adicionales
+- **Supabase** - Base de datos PostgreSQL como servicio con autenticación
 
 ## 📁 Estructura del Proyecto (DDD)
 
@@ -59,6 +60,21 @@ cd padpok-web-app
 npm install
 # o
 yarn install
+```
+
+3. Configura las variables de entorno:
+
+Crea un archivo `.env.local` en la raíz del proyecto con las siguientes variables:
+
+```bash
+# Configuración de Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Configuración de la aplicación
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ```
 
 ### Comandos de Desarrollo
