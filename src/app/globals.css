@@ -1217,6 +1217,18 @@ select:focus {
   min-width: 80px;
 }
 
+/* Error de submit */
+.submit-error {
+  background: #fee;
+  color: #c53030;
+  padding: var(--spacing-md);
+  margin: 0 var(--spacing-lg);
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  border: 1px solid #fed7d7;
+  text-align: center;
+}
+
 /* Navegación del formulario */
 .form-navigation {
   display: flex;

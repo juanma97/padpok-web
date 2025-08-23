@@ -47,6 +47,68 @@ export interface Database {
         }
         Relationships: []
       }
+      leagues: {
+        Row: {
+          id: string
+          creator_id: string
+          title: string
+          description: string | null
+          date: string
+          time: string
+          location: string
+          format: 'all-vs-all' | 'box-league' | 'groups-playoffs'
+          player_management: 'manual' | 'link'
+          players: Json
+          courts: Json
+          scoring_system: '3-1-0' | 'sets'
+          status: 'draft' | 'active' | 'completed' | 'cancelled'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          title: string
+          description?: string | null
+          date: string
+          time: string
+          location: string
+          format: 'all-vs-all' | 'box-league' | 'groups-playoffs'
+          player_management: 'manual' | 'link'
+          players: Json
+          courts: Json
+          scoring_system: '3-1-0' | 'sets'
+          status?: 'draft' | 'active' | 'completed' | 'cancelled'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          title?: string
+          description?: string | null
+          date?: string
+          time?: string
+          location?: string
+          format?: 'all-vs-all' | 'box-league' | 'groups-playoffs'
+          player_management?: 'manual' | 'link'
+          players?: Json
+          courts?: Json
+          scoring_system?: '3-1-0' | 'sets'
+          status?: 'draft' | 'active' | 'completed' | 'cancelled'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leagues_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -54,7 +116,12 @@ export interface Database {
     Functions: {
       [_ in never]: never
     }
-    Enums: {}
+    Enums: {
+      league_format: 'all-vs-all' | 'box-league' | 'groups-playoffs'
+      league_status: 'draft' | 'active' | 'completed' | 'cancelled'
+      scoring_system: '3-1-0' | 'sets'
+      player_management: 'manual' | 'link'
+    }
     CompositeTypes: {
       [_ in never]: never
     }
@@ -68,9 +135,12 @@ export type Updates<T extends keyof Database['public']['Tables']> = Database['pu
 
 // Tipos específicos de las tablas
 export type User = Tables<'users'>
+export type League = Tables<'leagues'>
 
 // Tipos para insertar datos
 export type UserInsert = Inserts<'users'>
+export type LeagueInsert = Inserts<'leagues'>
 
 // Tipos para actualizar datos
 export type UserUpdate = Updates<'users'>
+export type LeagueUpdate = Updates<'leagues'>

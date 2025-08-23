@@ -116,6 +116,51 @@ CREATE POLICY "Users can create own profile" ON users
   FOR INSERT WITH CHECK (auth.uid() = auth_user_id);
 ```
 
+### Tabla `leagues`
+
+```sql
+CREATE TABLE leagues (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR NOT NULL,
+  description TEXT,
+  date DATE NOT NULL,
+  time TIME NOT NULL,
+  location VARCHAR NOT NULL,
+  format VARCHAR NOT NULL CHECK (format IN ('all-vs-all', 'box-league', 'groups-playoffs')),
+  player_management VARCHAR NOT NULL CHECK (player_management IN ('manual', 'link')),
+  players JSONB NOT NULL DEFAULT '[]',
+  courts JSONB NOT NULL DEFAULT '[]',
+  scoring_system VARCHAR NOT NULL CHECK (scoring_system IN ('3-1-0', 'sets')),
+  status VARCHAR NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed', 'cancelled')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Políticas de Seguridad para Leagues
+
+```sql
+-- Habilitar RLS
+ALTER TABLE leagues ENABLE ROW LEVEL SECURITY;
+
+-- Los usuarios pueden ver todas las ligas públicas
+CREATE POLICY "Anyone can view leagues" ON leagues
+  FOR SELECT USING (true);
+
+-- Solo el creador puede editar su liga
+CREATE POLICY "Users can update own leagues" ON leagues
+  FOR UPDATE USING (auth.uid() = creator_id);
+
+-- Solo usuarios autenticados pueden crear ligas
+CREATE POLICY "Authenticated users can create leagues" ON leagues
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- Solo el creador puede eliminar su liga
+CREATE POLICY "Users can delete own leagues" ON leagues
+  FOR DELETE USING (auth.uid() = creator_id);
+```
+
 ### Comandos de Desarrollo
 
 ```bash

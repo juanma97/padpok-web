@@ -3,6 +3,8 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
+import { LeagueService } from '@/infrastructure/database/leagueService'
+import { UserService } from '@/infrastructure/database/userService'
 
 // Tipos para la liga
 export interface Player {
@@ -27,7 +29,7 @@ export interface LeagueData {
   location: string
   
   // Formato
-  format: 'todos-vs-todos' | 'box-league' | 'grupos-playoffs'
+  format: 'all-vs-all' | 'box-league' | 'groups-playoffs'
   
   // Jugadores
   playerManagement: 'manual' | 'link'
@@ -37,7 +39,7 @@ export interface LeagueData {
   courts: Court[]
   
   // Sistema de puntuación
-  scoringSystem: '3-1-0' | 'sets-ganados'
+  scoringSystem: '3-1-0' | 'sets'
 }
 
 // Componente principal
@@ -46,6 +48,8 @@ export default function CreateLeaguePage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 5
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const [leagueData, setLeagueData] = useState<LeagueData>({
     title: '',
@@ -53,7 +57,7 @@ export default function CreateLeaguePage() {
     date: '',
     time: '',
     location: '',
-    format: 'todos-vs-todos',
+    format: 'all-vs-all',
     playerManagement: 'manual',
     players: [],
     courts: [],
@@ -103,10 +107,67 @@ export default function CreateLeaguePage() {
     }
   }
 
-  const handleSubmit = () => {
-    // TODO: Implementar guardado en base de datos
-    console.log('Liga creada:', leagueData)
-    router.push('/dashboard')
+  const handleSubmit = async () => {
+    if (!user) {
+      setSubmitError('Usuario no autenticado')
+      return
+    }
+
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      // Obtener el ID del usuario en nuestra tabla
+      const { user: userRecord, error: userError } = await UserService.getUserByAuthId(user.id)
+      
+      if (userError || !userRecord) {
+        setSubmitError('No se pudo encontrar el perfil del usuario')
+        return
+      }
+
+      // Preparar datos para guardar en base de datos
+      const leagueDataForDB = {
+        creator_id: userRecord.id,
+        title: leagueData.title,
+        description: leagueData.description || null,
+        date: leagueData.date,
+        time: leagueData.time,
+        location: leagueData.location,
+        format: leagueData.format,
+        player_management: leagueData.playerManagement,
+        players: leagueData.players,
+        courts: leagueData.courts,
+        scoring_system: leagueData.scoringSystem,
+        status: 'draft' as const
+      }
+
+      console.log('Guardando liga:', leagueDataForDB)
+      
+      // Guardar en base de datos
+      const { league, error } = await LeagueService.createLeague(leagueDataForDB)
+
+      if (error) {
+        console.error('Error al crear la liga:', error)
+        setSubmitError(error)
+        return
+      }
+
+      if (!league) {
+        console.error('Error inesperado: no se devolvió la liga creada')
+        setSubmitError('Error inesperado al crear la liga')
+        return
+      }
+
+      console.log('Liga creada exitosamente:', league)
+      
+      // Redirigir al dashboard
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Error inesperado al crear la liga:', error)
+      setSubmitError('Error inesperado. Por favor, inténtalo de nuevo.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -169,9 +230,19 @@ export default function CreateLeaguePage() {
           )}
         </div>
 
+        {submitError && (
+          <div className="submit-error">
+            {submitError}
+          </div>
+        )}
+
         <div className="form-navigation">
           {currentStep > 1 && (
-            <button onClick={prevStep} className="nav-btn secondary">
+            <button 
+              onClick={prevStep} 
+              className="nav-btn secondary"
+              disabled={isSubmitting}
+            >
               Anterior
             </button>
           )}
@@ -181,8 +252,12 @@ export default function CreateLeaguePage() {
               Siguiente
             </button>
           ) : (
-            <button onClick={handleSubmit} className="nav-btn primary">
-              Crear Liga
+            <button 
+              onClick={handleSubmit} 
+              className="nav-btn primary"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Creando Liga...' : 'Crear Liga'}
             </button>
           )}
         </div>
@@ -276,7 +351,7 @@ function FormatStep({
 }) {
   const formats = [
     {
-      id: 'todos-vs-todos',
+      id: 'all-vs-all',
       name: 'Todos vs Todos',
       description: 'Cada pareja juega contra todas las demás'
     },
@@ -286,7 +361,7 @@ function FormatStep({
       description: 'Sistema de cajas con ascensos y descensos'
     },
     {
-      id: 'grupos-playoffs',
+      id: 'groups-playoffs',
       name: 'Grupos + Playoffs',
       description: 'Fase de grupos seguida de eliminatorias'
     }
@@ -527,7 +602,7 @@ function ScoringStep({
       description: '3 puntos por victoria, 1 punto por empate, 0 puntos por derrota'
     },
     {
-      id: 'sets-ganados',
+      id: 'sets',
       name: 'Sets Ganados',
       description: 'Clasificación por número total de sets ganados'
     }
@@ -559,7 +634,7 @@ function ScoringStep({
           </div>
           <div className="summary-item">
             <strong>Formato:</strong> {
-              data.format === 'todos-vs-todos' ? 'Todos vs Todos' :
+              data.format === 'all-vs-all' ? 'Todos vs Todos' :
               data.format === 'box-league' ? 'Box League' :
               'Grupos + Playoffs'
             }
