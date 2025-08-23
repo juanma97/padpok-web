@@ -161,6 +161,53 @@ CREATE POLICY "Users can delete own leagues" ON leagues
   FOR DELETE USING (auth.uid() = creator_id);
 ```
 
+### Tabla `tournaments`
+
+```sql
+CREATE TABLE tournaments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR NOT NULL,
+  description TEXT,
+  date DATE NOT NULL,
+  time TIME NOT NULL,
+  location VARCHAR NOT NULL,
+  format VARCHAR NOT NULL CHECK (format IN ('classic-americano', 'mixed-americano', 'team-americano')),
+  player_management VARCHAR NOT NULL CHECK (player_management IN ('manual', 'link')),
+  players JSONB NOT NULL DEFAULT '[]',
+  courts JSONB NOT NULL DEFAULT '[]',
+  games_per_round INTEGER NOT NULL DEFAULT 3 CHECK (games_per_round >= 1 AND games_per_round <= 10),
+  ranking_criteria VARCHAR NOT NULL DEFAULT 'points' CHECK (ranking_criteria IN ('points', 'wins')),
+  sit_out_points INTEGER NOT NULL DEFAULT 0 CHECK (sit_out_points >= 0 AND sit_out_points <= 50),
+  status VARCHAR NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed', 'cancelled')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Políticas de Seguridad para Tournaments
+
+```sql
+-- Habilitar RLS
+ALTER TABLE tournaments ENABLE ROW LEVEL SECURITY;
+
+-- Los usuarios pueden ver todos los torneos públicos
+CREATE POLICY "Anyone can view tournaments" ON tournaments
+  FOR SELECT USING (true);
+
+-- Solo el creador puede editar su torneo
+CREATE POLICY "Users can update own tournaments" ON tournaments
+  FOR UPDATE USING (auth.uid() = creator_id);
+
+-- Solo usuarios autenticados pueden crear torneos
+CREATE POLICY "Authenticated users can create tournaments" ON tournaments
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- Solo el creador puede eliminar su torneo
+CREATE POLICY "Users can delete own tournaments" ON tournaments
+  FOR DELETE USING (auth.uid() = creator_id);
+```
+
 ### Comandos de Desarrollo
 
 ```bash

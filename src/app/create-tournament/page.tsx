@@ -3,6 +3,8 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
+import { TournamentService } from '@/infrastructure/database/tournamentService'
+import { UserService } from '@/infrastructure/database/userService'
 
 // Tipos para el torneo
 export interface Player {
@@ -99,9 +101,52 @@ export default function CreateTournamentPage() {
     setSubmitError(null)
 
     try {
-      console.log('Torneo creado:', tournamentData)
-      // TODO: Implementar guardado en base de datos
-      alert('Torneo creado exitosamente (mock)')
+      // Obtener el ID del usuario en nuestra tabla
+      const { user: userRecord, error: userError } = await UserService.getUserByAuthId(user.id)
+      
+      if (userError || !userRecord) {
+        setSubmitError('No se pudo encontrar el perfil del usuario')
+        return
+      }
+
+      // Preparar datos para guardar en base de datos
+      const tournamentDataForDB = {
+        creator_id: userRecord.id,
+        title: tournamentData.title,
+        description: tournamentData.description || null,
+        date: tournamentData.date,
+        time: tournamentData.time,
+        location: tournamentData.location,
+        format: tournamentData.format,
+        player_management: tournamentData.playerManagement,
+        players: tournamentData.players,
+        courts: tournamentData.courts,
+        games_per_round: tournamentData.gamesPerRound,
+        ranking_criteria: tournamentData.rankingCriteria,
+        sit_out_points: tournamentData.sitOutPoints,
+        status: 'draft' as const
+      }
+
+      console.log('Guardando torneo:', tournamentDataForDB)
+      
+      // Guardar en base de datos
+      const { tournament, error } = await TournamentService.createTournament(tournamentDataForDB)
+
+      if (error) {
+        console.error('Error al crear el torneo:', error)
+        setSubmitError(error)
+        return
+      }
+
+      if (!tournament) {
+        console.error('Error inesperado: no se devolvió el torneo creado')
+        setSubmitError('Error inesperado al crear el torneo')
+        return
+      }
+
+      console.log('Torneo creado exitosamente:', tournament)
+      
+      // Redirigir al dashboard
       router.push('/dashboard')
     } catch (error) {
       console.error('Error inesperado al crear el torneo:', error)

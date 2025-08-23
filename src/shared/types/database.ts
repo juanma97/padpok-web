@@ -109,6 +109,74 @@ export interface Database {
           }
         ]
       }
+      tournaments: {
+        Row: {
+          id: string
+          creator_id: string
+          title: string
+          description: string | null
+          date: string
+          time: string
+          location: string
+          format: 'classic-americano' | 'mixed-americano' | 'team-americano'
+          player_management: 'manual' | 'link'
+          players: Json
+          courts: Json
+          games_per_round: number
+          ranking_criteria: 'points' | 'wins'
+          sit_out_points: number
+          status: 'draft' | 'active' | 'completed' | 'cancelled'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          creator_id: string
+          title: string
+          description?: string | null
+          date: string
+          time: string
+          location: string
+          format: 'classic-americano' | 'mixed-americano' | 'team-americano'
+          player_management: 'manual' | 'link'
+          players: Json
+          courts: Json
+          games_per_round: number
+          ranking_criteria: 'points' | 'wins'
+          sit_out_points: number
+          status?: 'draft' | 'active' | 'completed' | 'cancelled'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          creator_id?: string
+          title?: string
+          description?: string | null
+          date?: string
+          time?: string
+          location?: string
+          format?: 'classic-americano' | 'mixed-americano' | 'team-americano'
+          player_management?: 'manual' | 'link'
+          players?: Json
+          courts?: Json
+          games_per_round?: number
+          ranking_criteria?: 'points' | 'wins'
+          sit_out_points?: number
+          status?: 'draft' | 'active' | 'completed' | 'cancelled'
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -121,6 +189,9 @@ export interface Database {
       league_status: 'draft' | 'active' | 'completed' | 'cancelled'
       scoring_system: '3-1-0' | 'sets'
       player_management: 'manual' | 'link'
+      tournament_format: 'classic-americano' | 'mixed-americano' | 'team-americano'
+      tournament_status: 'draft' | 'active' | 'completed' | 'cancelled'
+      ranking_criteria: 'points' | 'wins'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -136,11 +207,14 @@ export type Updates<T extends keyof Database['public']['Tables']> = Database['pu
 // Tipos específicos de las tablas
 export type User = Tables<'users'>
 export type League = Tables<'leagues'>
+export type Tournament = Tables<'tournaments'>
 
 // Tipos para insertar datos
 export type UserInsert = Inserts<'users'>
 export type LeagueInsert = Inserts<'leagues'>
+export type TournamentInsert = Inserts<'tournaments'>
 
 // Tipos para actualizar datos
 export type UserUpdate = Updates<'users'>
 export type LeagueUpdate = Updates<'leagues'>
+export type TournamentUpdate = Updates<'tournaments'>
