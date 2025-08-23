@@ -1509,6 +1509,119 @@ select:focus {
   margin-bottom: var(--spacing-xl);
 }
 
+/* Estilos específicos para crear torneos */
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.config-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.config-group label {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+.config-group select,
+.config-group input[type="number"] {
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  background: var(--card-background);
+  color: var(--text-color);
+}
+
+.config-group select:focus,
+.config-group input[type="number"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.config-group small {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.tournament-summary {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
+}
+
+.tournament-summary h3 {
+  color: var(--text-color);
+  margin-bottom: var(--spacing-lg);
+  font-size: 1.2rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: rgba(0, 123, 255, 0.05);
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(0, 123, 255, 0.1);
+}
+
+.summary-item strong {
+  color: var(--text-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.summary-item:last-child {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.add-court-form {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.add-court-form h3 {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-color);
+}
+
+.court-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-sm);
+}
+
+.court-name {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
 /* Responsive para Mis Ligas */
 @media (max-width: 768px) {
   .leagues-grid {
@@ -1527,5 +1640,13 @@ select:focus {
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
+  }
+
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
   }
 }

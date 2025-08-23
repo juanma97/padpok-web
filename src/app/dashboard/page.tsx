@@ -86,7 +86,12 @@ const OverviewView = memo(function OverviewView({ user, router }: { user: any; r
           <div className="action-icon">🥇</div>
           <h3>Crear Torneo</h3>
           <p>Inicia un nuevo torneo competitivo</p>
-          <button className="action-btn">Crear Torneo</button>
+          <button 
+            onClick={() => router.push('/create-tournament')}
+            className="action-btn"
+          >
+            Crear Torneo
+          </button>
         </div>
       </div>
 
