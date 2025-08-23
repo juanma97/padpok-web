@@ -26,10 +26,12 @@ export const useAuth = () => {
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
+          console.error('Error getting session:', error)
           setAuthState(prev => ({ ...prev, error, loading: false }))
           return
         }
 
+        console.log('Initial session:', session?.user?.email || 'No user')
         setAuthState({
           user: session?.user ?? null,
           session,
@@ -37,6 +39,7 @@ export const useAuth = () => {
           error: null
         })
       } catch (err) {
+        console.error('Unexpected error getting session:', err)
         setAuthState(prev => ({ 
           ...prev, 
           error: err as AuthError, 
@@ -50,6 +53,7 @@ export const useAuth = () => {
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email || 'No user')
         setAuthState({
           user: session?.user ?? null,
           session,

@@ -54,7 +54,7 @@ function Sidebar({
 }
 
 // Componente de vista principal - Resumen
-function OverviewView({ user }: { user: any }) {
+function OverviewView({ user, router }: { user: any; router: any }) {
   return (
     <div className="main-content">
       <div className="content-header">
@@ -67,7 +67,12 @@ function OverviewView({ user }: { user: any }) {
           <div className="action-icon">🏆</div>
           <h3>Crear Liga</h3>
           <p>Organiza una nueva liga deportiva</p>
-          <button className="action-btn">Crear Liga</button>
+          <button 
+            onClick={() => router.push('/create-league')}
+            className="action-btn"
+          >
+            Crear Liga
+          </button>
         </div>
 
         <div className="action-card">
@@ -191,10 +196,17 @@ export default function DashboardPage() {
     router.push('/')
   }
 
+  // Hook debe estar antes de cualquier return condicional
+  React.useEffect(() => {
+    if (!user && !loading) {
+      router.push('/')
+    }
+  }, [user, loading, router])
+
   const renderMainContent = () => {
     switch (activeMenuItem) {
       case 'overview':
-        return <OverviewView user={user} />
+        return <OverviewView user={user} router={router} />
       case 'mis-ligas':
         return <MisLigasView />
       case 'mis-torneos':
@@ -202,7 +214,7 @@ export default function DashboardPage() {
       case 'mis-jugadores':
         return <MisJugadoresView />
       default:
-        return <OverviewView user={user} />
+        return <OverviewView user={user} router={router} />
     }
   }
 
@@ -216,8 +228,12 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    router.push('/')
-    return null
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Verificando autenticación...</p>
+      </div>
+    )
   }
 
   return (
