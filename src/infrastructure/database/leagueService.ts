@@ -13,6 +13,7 @@ interface LeagueData {
   courts: any[]
   scoring_system: '3-1-0' | 'sets'
   status?: 'draft' | 'active' | 'completed' | 'cancelled'
+  matches?: any[]
 }
 
 interface LeagueRecord extends LeagueData {
@@ -22,6 +23,41 @@ interface LeagueRecord extends LeagueData {
 }
 
 export class LeagueService {
+  
+  /**
+   * Parsea campos JSON de forma segura
+   */
+  private static parseJSONField(field: any, defaultValue: any = []): any {
+    if (!field) return defaultValue
+    
+    // Si ya es el tipo correcto, devolverlo directamente
+    if (Array.isArray(field) || (typeof field === 'object' && field !== null)) {
+      return field
+    }
+    
+    // Si es string, intentar parsearlo
+    if (typeof field === 'string') {
+      try {
+        // Casos especiales para strings vacíos o inválidos
+        if (field === '' || field === 'null' || field === 'undefined') {
+          return defaultValue
+        }
+        if (field === '[]' || field === '{}') {
+          return defaultValue
+        }
+        
+        // Intentar parsear JSON válido
+        const parsed = JSON.parse(field)
+        return parsed !== null ? parsed : defaultValue
+      } catch (error) {
+        console.warn('Error parsing JSON field:', field, error)
+        return defaultValue
+      }
+    }
+    
+    return defaultValue
+  }
+
   /**
    * Crea una nueva liga en la base de datos
    */
@@ -36,6 +72,7 @@ export class LeagueService {
           status: leagueData.status || 'draft',
           players: JSON.stringify(leagueData.players),
           courts: JSON.stringify(leagueData.courts),
+          matches: JSON.stringify(leagueData.matches || []),
           created_at: now,
           updated_at: now
         })
@@ -50,8 +87,8 @@ export class LeagueService {
       // Parsear los campos JSON de vuelta
       const league = {
         ...data,
-        players: JSON.parse(data.players),
-        courts: JSON.parse(data.courts)
+        players: this.parseJSONField(data.players, []),
+        courts: this.parseJSONField(data.courts, []),
       } as LeagueRecord
 
       return { league, error: null }
@@ -80,11 +117,13 @@ export class LeagueService {
         return { league: null, error: error.message }
       }
 
+      console.log('data', data);
       // Parsear los campos JSON
       const league = {
         ...data,
-        players: JSON.parse(data.players),
-        courts: JSON.parse(data.courts)
+        players: this.parseJSONField(data.players, []),
+        courts: this.parseJSONField(data.courts, []),
+        matches: this.parseJSONField(data.matches, [])
       } as LeagueRecord
 
       return { league, error: null }
@@ -110,12 +149,31 @@ export class LeagueService {
         return { leagues: [], error: error.message }
       }
 
-      // Parsear los campos JSON para cada liga
-      const leagues = (data || []).map((league: any) => ({
-        ...league,
-        players: JSON.parse(league.players),
-        courts: JSON.parse(league.courts)
-      })) as LeagueRecord[]
+      // Parsear los campos JSON para cada liga con manejo de errores individual
+      const leagues = (data || []).map((league: any) => {
+        try {
+          return {
+            ...league,
+            players: this.parseJSONField(league.players, []),
+            courts: this.parseJSONField(league.courts, []),
+            matches: this.parseJSONField(league.matches, [])
+          }
+        } catch (error) {
+          console.error('Error parsing league:', league.id, {
+            players: league.players,
+            courts: league.courts,
+            matches: league.matches,
+            error
+          })
+          // Devolver liga con campos vacíos si hay error
+          return {
+            ...league,
+            players: [],
+            courts: [],
+            matches: []
+          }
+        }
+      }) as LeagueRecord[]
 
       return { leagues, error: null }
     } catch (err) {
@@ -129,7 +187,7 @@ export class LeagueService {
    */
   static async updateLeague(id: string, updates: Partial<LeagueData>): Promise<{ league: LeagueRecord | null; error: string | null }> {
     try {
-      const updateData = {
+      const updateData: any = {
         ...updates,
         updated_at: new Date().toISOString()
       }
@@ -140,6 +198,9 @@ export class LeagueService {
       }
       if (updates.courts) {
         updateData.courts = JSON.stringify(updates.courts)
+      }
+      if (updates.matches) {
+        updateData.matches = JSON.stringify(updates.matches)
       }
 
       const { data, error } = await (supabase as any)
@@ -157,8 +218,9 @@ export class LeagueService {
       // Parsear los campos JSON
       const league = {
         ...data,
-        players: JSON.parse(data.players),
-        courts: JSON.parse(data.courts)
+        players: this.parseJSONField(data.players, []),
+        courts: this.parseJSONField(data.courts, []),
+        matches: this.parseJSONField(data.matches, [])
       } as LeagueRecord
 
       return { league, error: null }
@@ -211,8 +273,9 @@ export class LeagueService {
       // Parsear los campos JSON para cada liga
       const leagues = (data || []).map((league: any) => ({
         ...league,
-        players: JSON.parse(league.players),
-        courts: JSON.parse(league.courts)
+        players: this.parseJSONField(league.players, []),
+        courts: this.parseJSONField(league.courts, []),
+        matches: this.parseJSONField(league.matches, [])
       })) as LeagueRecord[]
 
       return { leagues, error: null }
@@ -248,8 +311,9 @@ export class LeagueService {
       // Parsear los campos JSON
       const league = {
         ...data,
-        players: JSON.parse(data.players),
-        courts: JSON.parse(data.courts)
+        players: this.parseJSONField(data.players, []),
+        courts: this.parseJSONField(data.courts, []),
+        matches: this.parseJSONField(data.matches, [])
       } as LeagueRecord
 
       return { league, error: null }

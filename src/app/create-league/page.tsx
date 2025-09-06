@@ -7,6 +7,8 @@ import { useClients } from '@/shared/hooks/useClients'
 import { useCourts } from '@/shared/hooks/useCourts'
 import { LeagueService } from '@/infrastructure/database/leagueService'
 import { UserService } from '@/infrastructure/database/userService'
+import { LeagueCalendarFactory } from '@/application/factories/LeagueCalendarFactory'
+import { Player as CalendarPlayer, Court as CalendarCourt } from '@/shared/types/match'
 
 // Tipos para la liga
 export interface Player {
@@ -134,11 +136,25 @@ export default function CreateLeaguePage() {
         if (leagueData.players.length === 0) {
           return 'Debes añadir al menos un jugador a la liga'
         }
+        if (leagueData.players.length < 4) {
+          return 'Se necesitan al menos 4 jugadores para crear una liga'
+        }
+        if (leagueData.players.length % 2 !== 0) {
+          return 'El número de jugadores debe ser par para formar parejas (modalidad 2vs2)'
+        }
         break
 
       case 4: // Configuración de pistas
         if (leagueData.courts.length === 0) {
           return 'Debes añadir al menos una pista a la liga'
+        }
+        // Validar que haya suficientes pistas para los partidos simultáneos
+        if (leagueData.players.length > 0) {
+          const pairs = Math.floor(leagueData.players.length / 2)
+          const simultaneousMatches = Math.floor(pairs / 2)
+          if (leagueData.courts.length < simultaneousMatches) {
+            return `Se necesitan al menos ${simultaneousMatches} pistas para ${leagueData.players.length} jugadores (${pairs} parejas). Actualmente tienes ${leagueData.courts.length} pista(s).`
+          }
         }
         break
 
@@ -176,6 +192,24 @@ export default function CreateLeaguePage() {
     }
   }
 
+  // Función para convertir tipos locales a tipos del calendario
+  const convertToCalendarTypes = () => {
+    const calendarPlayers: CalendarPlayer[] = leagueData.players.map(player => ({
+      id: player.id,
+      name: player.name + (player.lastName ? ` ${player.lastName}` : ''),
+      email: player.email,
+      phone: player.phone
+    }))
+
+    const calendarCourts: CalendarCourt[] = leagueData.courts.map(court => ({
+      id: court.id,
+      name: court.name,
+      number: '1' // Por defecto, ya que el tipo local no tiene number
+    }))
+
+    return { calendarPlayers, calendarCourts }
+  }
+
   const handleSubmit = async () => {
     if (!user) {
       setSubmitError('Usuario no autenticado')
@@ -194,6 +228,33 @@ export default function CreateLeaguePage() {
         return
       }
 
+      // Solo generar calendario si el formato es 'all-vs-all'
+      let matches: any[] = []
+      if (leagueData.format === 'all-vs-all') {
+        try {
+          // Convertir tipos y generar calendario automáticamente
+          const { calendarPlayers, calendarCourts } = convertToCalendarTypes()
+          
+          const calendarService = LeagueCalendarFactory.create()
+          const calendarResult = calendarService.generateCalendar({
+            players: calendarPlayers,
+            courts: calendarCourts,
+            leagueId: 'temp_id' // Se actualizará después
+          })
+
+          if (!calendarResult.success || !calendarResult.calendar) {
+            setSubmitError(calendarResult.error || 'Error al generar el calendario')
+            return
+          }
+
+          matches = calendarResult.calendar.rounds
+        } catch (calendarError) {
+          console.error('Error al generar calendario:', calendarError)
+          setSubmitError('Error al generar el calendario automático')
+          return
+        }
+      }
+
       // Preparar datos para guardar en base de datos
       const leagueDataForDB = {
         creator_id: userRecord.id,
@@ -207,7 +268,8 @@ export default function CreateLeaguePage() {
         players: leagueData.players,
         courts: leagueData.courts,
         scoring_system: leagueData.scoringSystem,
-        status: 'draft' as const
+        status: leagueData.format === 'all-vs-all' ? 'active' as const : 'draft' as const, // Activar automáticamente si es all-vs-all
+        matches: matches
       }
 
       

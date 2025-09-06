@@ -185,6 +185,7 @@ const LeagueCard = memo(function LeagueCard({
   league: any; 
   formatDate: (date: string) => string 
 }) {
+  const router = useRouter()
   return (
     <div className={`league-card ${league.status}`}>
       <div className="league-header">
@@ -225,7 +226,12 @@ const LeagueCard = memo(function LeagueCard({
       <div className="league-actions">
         {league.status === 'active' && (
           <>
-            <button className="action-btn secondary">Ver Detalles</button>
+            <button 
+              className="action-btn secondary"
+              onClick={() => router.push(`/league/${league.id}`)}
+            >
+              Ver Detalles
+            </button>
             <button className="action-btn primary">Gestionar</button>
           </>
         )}

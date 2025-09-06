@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './useAuth'
 import { LeagueService } from '@/infrastructure/database/leagueService'
 import { UserService } from '@/infrastructure/database/userService'
@@ -20,7 +20,7 @@ export const useLeagues = () => {
     error: null
   })
 
-  const loadUserLeagues = async () => {
+  const loadUserLeagues = useCallback(async () => {
     if (!user) {
       setState({ leagues: [], loading: false, error: null })
       return
@@ -45,17 +45,17 @@ export const useLeagues = () => {
         return
       }
 
-      setState({ leagues, loading: false, error: null })
+      setState({ leagues: leagues as League[], loading: false, error: null })
     } catch (err) {
       console.error('Error loading user leagues:', err)
       setState({ leagues: [], loading: false, error: 'Error inesperado al cargar las ligas' })
     }
-  }
+  }, [user])
 
   // Cargar ligas cuando el usuario cambie
   useEffect(() => {
     loadUserLeagues()
-  }, [user])
+  }, [loadUserLeagues])
 
   // Función para recargar las ligas manualmente
   const refetchLeagues = () => {

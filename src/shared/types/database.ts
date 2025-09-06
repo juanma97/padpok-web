@@ -62,6 +62,7 @@ export interface Database {
           courts: Json
           scoring_system: '3-1-0' | 'sets'
           status: 'draft' | 'active' | 'completed' | 'cancelled'
+          matches: Json
           created_at: string
           updated_at: string
         }
@@ -79,6 +80,7 @@ export interface Database {
           courts: Json
           scoring_system: '3-1-0' | 'sets'
           status?: 'draft' | 'active' | 'completed' | 'cancelled'
+          matches?: Json
           created_at?: string
           updated_at?: string
         }
@@ -96,6 +98,7 @@ export interface Database {
           courts?: Json
           scoring_system?: '3-1-0' | 'sets'
           status?: 'draft' | 'active' | 'completed' | 'cancelled'
+          matches?: Json
           created_at?: string
           updated_at?: string
         }

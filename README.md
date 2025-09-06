@@ -133,6 +133,7 @@ CREATE TABLE leagues (
   courts JSONB NOT NULL DEFAULT '[]',
   scoring_system VARCHAR NOT NULL CHECK (scoring_system IN ('3-1-0', 'sets')),
   status VARCHAR NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed', 'cancelled')),
+  matches JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -159,6 +160,23 @@ CREATE POLICY "Authenticated users can create leagues" ON leagues
 -- Solo el creador puede eliminar su liga
 CREATE POLICY "Users can delete own leagues" ON leagues
   FOR DELETE USING (auth.uid() = creator_id);
+```
+
+### Migración para añadir campo `matches`
+
+Si ya tienes la tabla creada, ejecuta este comando para añadir el campo `matches`:
+
+```sql
+-- Añadir campo matches a tabla existente
+ALTER TABLE leagues ADD COLUMN matches JSONB DEFAULT '[]'::jsonb;
+
+-- Limpiar TODOS los campos JSON corruptos (ejecutar si hay problemas de parsing):
+UPDATE leagues SET
+  players = '[]'::jsonb WHERE players IS NULL OR players::text = '' OR players::text = 'null';
+UPDATE leagues SET
+  courts = '[]'::jsonb WHERE courts IS NULL OR courts::text = '' OR courts::text = 'null';
+UPDATE leagues SET
+  matches = '[]'::jsonb WHERE matches IS NULL OR matches::text = '' OR matches::text = 'null' OR matches::text = '[]' OR matches::text = '{}';
 ```
 
 ### Tabla `tournaments`
