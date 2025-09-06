@@ -3,10 +3,11 @@
 import React, { useState, memo, useMemo, useCallback } from 'react'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useLeagues } from '@/shared/hooks/useLeagues'
+import { useTournaments } from '@/shared/hooks/useTournaments'
 import { useRouter } from 'next/navigation'
 
 // Tipos
-type MenuItem = 'overview' | 'mis-ligas' | 'mis-torneos' | 'mis-jugadores'
+type MenuItem = 'overview' | 'leagues' | 'tournaments' | 'players' | 'courts'
 
 // Componente de barra lateral memoizado
 const Sidebar = memo(function Sidebar({ 
@@ -21,9 +22,10 @@ const Sidebar = memo(function Sidebar({
   // Memoizar los items del menú ya que no cambian
   const menuItems = useMemo(() => [
     { id: 'overview' as MenuItem, label: 'Resumen', icon: '📊' },
-    { id: 'mis-ligas' as MenuItem, label: 'Mis Ligas', icon: '🏆' },
-    { id: 'mis-torneos' as MenuItem, label: 'Mis Torneos', icon: '🥇' },
-    { id: 'mis-jugadores' as MenuItem, label: 'Mis Jugadores', icon: '👥' },
+    { id: 'leagues' as MenuItem, label: 'Mis Ligas', icon: '🏆' },
+    { id: 'tournaments' as MenuItem, label: 'Mis Torneos', icon: '🥇' },
+    { id: 'players' as MenuItem, label: 'Mis Jugadores', icon: '👥' },
+    { id: 'courts' as MenuItem, label: 'Mis Pistas', icon: '🎾' },
   ], [])
 
   return (
@@ -58,10 +60,13 @@ const Sidebar = memo(function Sidebar({
 // Componente de vista principal - Resumen memoizado
 const OverviewView = memo(function OverviewView({ user, router }: { user: any; router: any }) {
   const { leagues, loading: leaguesLoading, getLeagueStats, getRecentLeagues } = useLeagues()
+  const { tournaments, loading: tournamentsLoading, getTournamentStats, getRecentTournaments } = useTournaments()
   
   // Memoizar estadísticas para evitar recálculos innecesarios
-  const stats = useMemo(() => getLeagueStats(), [getLeagueStats])
+  const leagueStats = useMemo(() => getLeagueStats(), [getLeagueStats])
+  const tournamentStats = useMemo(() => getTournamentStats(), [getTournamentStats])
   const recentLeagues = useMemo(() => getRecentLeagues(2), [getRecentLeagues])
+  const recentTournaments = useMemo(() => getRecentTournaments(2), [getRecentTournaments])
   return (
     <div className="main-content">
       <div className="content-header">
@@ -100,11 +105,11 @@ const OverviewView = memo(function OverviewView({ user, router }: { user: any; r
           <h3>Resumen de Ligas</h3>
           <div className="summary-stats">
             <div className="stat-item">
-              <span className="stat-number">{leaguesLoading ? '...' : stats.activeLeagues}</span>
+              <span className="stat-number">{leaguesLoading ? '...' : leagueStats.activeLeagues}</span>
               <span className="stat-label">Ligas Activas</span>
             </div>
             <div className="stat-item">
-              <span className="stat-number">{leaguesLoading ? '...' : stats.totalPlayers}</span>
+              <span className="stat-number">{leaguesLoading ? '...' : leagueStats.totalPlayers}</span>
               <span className="stat-label">Jugadores Total</span>
             </div>
           </div>
@@ -135,25 +140,33 @@ const OverviewView = memo(function OverviewView({ user, router }: { user: any; r
           <h3>Resumen de Torneos</h3>
           <div className="summary-stats">
             <div className="stat-item">
-              <span className="stat-number">2</span>
+              <span className="stat-number">{tournamentsLoading ? '...' : tournamentStats.activeTournaments}</span>
               <span className="stat-label">Torneos Activos</span>
             </div>
             <div className="stat-item">
-              <span className="stat-number">8</span>
-              <span className="stat-label">Equipos Total</span>
+              <span className="stat-number">{tournamentsLoading ? '...' : tournamentStats.totalPlayers}</span>
+              <span className="stat-label">Jugadores Total</span>
             </div>
           </div>
           <div className="recent-items">
             <h4>Torneos Recientes</h4>
             <div className="item-list">
-              <div className="list-item">
-                <span className="item-name">Torneo Regional</span>
-                <span className="item-status active">En Curso</span>
-              </div>
-              <div className="list-item">
-                <span className="item-name">Copa Local</span>
-                <span className="item-status pending">Próximo</span>
-              </div>
+              {tournamentsLoading ? (
+                <div className="loading-message">Cargando torneos...</div>
+              ) : recentTournaments.length > 0 ? (
+                recentTournaments.map((tournament) => (
+                  <div key={tournament.id} className="list-item">
+                    <span className="item-name">{tournament.title}</span>
+                    <span className={`item-status ${tournament.status}`}>
+                      {tournament.status === 'active' ? 'Activo' : 
+                       tournament.status === 'draft' ? 'Borrador' :
+                       tournament.status === 'completed' ? 'Finalizado' : 'Cancelado'}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-message">No hay torneos creados aún</div>
+              )}
             </div>
           </div>
         </div>
@@ -228,8 +241,85 @@ const LeagueCard = memo(function LeagueCard({
   )
 })
 
+// Componente memoizado para card individual de torneo
+const TournamentCard = memo(function TournamentCard({ 
+  tournament, 
+  formatDate 
+}: { 
+  tournament: any; 
+  formatDate: (date: string) => string 
+}) {
+  return (
+    <div className={`league-card ${tournament.status}`}>
+      <div className="league-header">
+        <h4 className="league-title">{tournament.title}</h4>
+        <span className={`league-status ${tournament.status}`}>
+          {tournament.status === 'active' ? 'Activo' : 
+           tournament.status === 'draft' ? 'Borrador' :
+           tournament.status === 'completed' ? 'Finalizado' : 'Cancelado'}
+        </span>
+      </div>
+      <div className="league-info">
+        {tournament.description && (
+          <p className="league-description">{tournament.description}</p>
+        )}
+        <div className="league-details">
+          <div className="detail-item">
+            <span className="detail-label">📅 Fecha:</span>
+            <span className="detail-value">{formatDate(tournament.date)}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">📍 Lugar:</span>
+            <span className="detail-value">{tournament.location}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-label">🏆 Formato:</span>
+            <span className="detail-value">
+              {tournament.format === 'classic-americano' ? 'Classic Americano' :
+               tournament.format === 'mixed-americano' ? 'Mixed Americano' : 'Team Americano'}
+            </span>
+          </div>
+          {tournament.status === 'active' && (
+            <>
+              <div className="detail-item">
+                <span className="detail-label">👥 Jugadores:</span>
+                <span className="detail-value">{Array.isArray(tournament.players) ? tournament.players.length : 0}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">🎾 Pistas:</span>
+                <span className="detail-value">{Array.isArray(tournament.courts) ? tournament.courts.length : 0}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">🎯 Juegos/Ronda:</span>
+                <span className="detail-value">{tournament.games_per_round}</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="league-actions">
+        {tournament.status === 'active' && (
+          <>
+            <button className="action-btn secondary">Ver Detalles</button>
+            <button className="action-btn primary">Gestionar</button>
+          </>
+        )}
+        {tournament.status === 'draft' && (
+          <>
+            <button className="action-btn secondary">Editar</button>
+            <button className="action-btn primary">Activar</button>
+          </>
+        )}
+        {tournament.status === 'completed' && (
+          <button className="action-btn secondary">Ver Resultados</button>
+        )}
+      </div>
+    </div>
+  )
+})
+
 // Componentes de vista para otras secciones memoizada
-const MisLigasView = memo(function MisLigasView() {
+const LeaguesView = memo(function LeaguesView() {
   const { leagues, loading, error, getLeaguesByStatus, refetchLeagues } = useLeagues()
   
   // Memoizar filtros de ligas para evitar recálculos
@@ -358,21 +448,136 @@ const MisLigasView = memo(function MisLigasView() {
   )
 })
 
-function MisTorneosView() {
+const TournamentsView = memo(function TournamentsView() {
+  const { tournaments, loading, error, getTournamentsByStatus, refetchTournaments } = useTournaments()
+  
+  // Memoizar filtros de torneos para evitar recálculos
+  const activeTournaments = useMemo(() => getTournamentsByStatus('active'), [getTournamentsByStatus])
+  const draftTournaments = useMemo(() => getTournamentsByStatus('draft'), [getTournamentsByStatus])
+  const completedTournaments = useMemo(() => getTournamentsByStatus('completed'), [getTournamentsByStatus])
+
+  // Memoizar función de formateo
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="main-content">
+        <div className="content-header">
+          <h2>Mis Torneos</h2>
+          <p>Administra tus torneos competitivos</p>
+        </div>
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Cargando torneos...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="main-content">
+        <div className="content-header">
+          <h2>Mis Torneos</h2>
+          <p>Administra tus torneos competitivos</p>
+        </div>
+        <div className="error-container">
+          <p className="error-message">{error}</p>
+          <button onClick={refetchTournaments} className="retry-btn">
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="main-content">
       <div className="content-header">
         <h2>Mis Torneos</h2>
         <p>Administra tus torneos competitivos</p>
       </div>
-      <div className="placeholder-content">
-        <p>Próximamente: Lista completa de torneos</p>
-      </div>
+
+      {tournaments.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">🏆</div>
+          <h3>No tienes torneos creados</h3>
+          <p>Crea tu primer torneo para empezar a organizar competiciones</p>
+          <button className="action-btn primary">
+            Crear Primer Torneo
+          </button>
+        </div>
+      ) : (
+        <div className="leagues-sections">
+          {/* Torneos Activos */}
+          {activeTournaments.length > 0 && (
+            <div className="leagues-section">
+              <h3 className="section-title">
+                <span className="status-indicator active"></span>
+                Torneos Activos ({activeTournaments.length})
+              </h3>
+              <div className="leagues-grid">
+                {activeTournaments.map((tournament) => (
+                  <TournamentCard 
+                    key={tournament.id} 
+                    tournament={tournament} 
+                    formatDate={formatDate}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Torneos en Borrador */}
+          {draftTournaments.length > 0 && (
+            <div className="leagues-section">
+              <h3 className="section-title">
+                <span className="status-indicator draft"></span>
+                Borradores ({draftTournaments.length})
+              </h3>
+              <div className="leagues-grid">
+                {draftTournaments.map((tournament) => (
+                  <TournamentCard 
+                    key={tournament.id} 
+                    tournament={tournament} 
+                    formatDate={formatDate}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Torneos Completados */}
+          {completedTournaments.length > 0 && (
+            <div className="leagues-section">
+              <h3 className="section-title">
+                <span className="status-indicator completed"></span>
+                Completados ({completedTournaments.length})
+              </h3>
+              <div className="leagues-grid">
+                {completedTournaments.map((tournament) => (
+                  <TournamentCard 
+                    key={tournament.id} 
+                    tournament={tournament} 
+                    formatDate={formatDate}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
-}
+})
 
-function MisJugadoresView() {
+function PlayersView() {
   return (
     <div className="main-content">
       <div className="content-header">
@@ -381,6 +586,20 @@ function MisJugadoresView() {
       </div>
       <div className="placeholder-content">
         <p>Próximamente: Lista completa de jugadores</p>
+      </div>
+    </div>
+  )
+}
+
+function CourtsView() {
+  return (
+    <div className="main-content">
+      <div className="content-header">
+        <h2>Mis Jugadores</h2>
+        <p>Administra la información de tus pistas</p>
+      </div>
+      <div className="placeholder-content">
+        <p>Próximamente: Lista completa de pistas</p>
       </div>
     </div>
   )
@@ -414,12 +633,14 @@ export default function DashboardPage() {
     switch (activeMenuItem) {
       case 'overview':
         return <OverviewView user={user} router={router} />
-      case 'mis-ligas':
-        return <MisLigasView />
-      case 'mis-torneos':
-        return <MisTorneosView />
-      case 'mis-jugadores':
-        return <MisJugadoresView />
+      case 'leagues':
+        return <LeaguesView />
+      case 'tournaments':
+        return <TournamentsView />
+      case 'players':
+        return <PlayersView />
+      case 'courts':
+        return <CourtsView />
       default:
         return <OverviewView user={user} router={router} />
     }
