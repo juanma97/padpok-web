@@ -97,7 +97,74 @@ export default function CreateLeaguePage() {
     setLeagueData(prev => ({ ...prev, ...updates }))
   }
 
+  // Función de validación por paso
+  const validateCurrentStep = (): string | null => {
+    switch (currentStep) {
+      case 1: // Información básica
+        if (!leagueData.title.trim()) {
+          return 'El título de la liga es obligatorio'
+        }
+        if (!leagueData.date) {
+          return 'La fecha de la liga es obligatoria'
+        }
+        if (!leagueData.time) {
+          return 'La hora de la liga es obligatoria'
+        }
+        if (!leagueData.location.trim()) {
+          return 'La ubicación de la liga es obligatoria'
+        }
+        // Validar que la fecha no sea anterior a hoy
+        const selectedDate = new Date(leagueData.date)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        selectedDate.setHours(0, 0, 0, 0)
+        
+        if (selectedDate < today) {
+          return 'No puedes crear una liga con fecha anterior al día de hoy'
+        }
+        break
+
+      case 2: // Formato de la liga
+        if (!leagueData.format) {
+          return 'Debes seleccionar un formato de liga'
+        }
+        break
+
+      case 3: // Gestión de jugadores
+        if (leagueData.players.length === 0) {
+          return 'Debes añadir al menos un jugador a la liga'
+        }
+        break
+
+      case 4: // Configuración de pistas
+        if (leagueData.courts.length === 0) {
+          return 'Debes añadir al menos una pista a la liga'
+        }
+        break
+
+      case 5: // Sistema de puntuación
+        if (!leagueData.scoringSystem) {
+          return 'Debes seleccionar un sistema de puntuación'
+        }
+        break
+
+      default:
+        break
+    }
+    return null // Todo válido
+  }
+
   const nextStep = () => {
+    // Validar el paso actual antes de avanzar
+    const validationError = validateCurrentStep()
+    if (validationError) {
+      setSubmitError(validationError)
+      return
+    }
+
+    // Limpiar error si la validación es exitosa
+    setSubmitError(null)
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     }

@@ -80,7 +80,77 @@ export default function CreateTournamentPage() {
     setTournamentData(prev => ({ ...prev, ...updates }))
   }
 
+  // Función de validación por paso
+  const validateCurrentStep = (): string | null => {
+    switch (currentStep) {
+      case 1: // Información básica
+        if (!tournamentData.title.trim()) {
+          return 'El título del torneo es obligatorio'
+        }
+        if (!tournamentData.date) {
+          return 'La fecha del torneo es obligatoria'
+        }
+        if (!tournamentData.time) {
+          return 'La hora del torneo es obligatoria'
+        }
+        if (!tournamentData.location.trim()) {
+          return 'La ubicación del torneo es obligatoria'
+        }
+        // Validar que la fecha no sea anterior a hoy
+        const selectedDate = new Date(tournamentData.date)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        selectedDate.setHours(0, 0, 0, 0)
+        
+        if (selectedDate < today) {
+          return 'No puedes crear un torneo con fecha anterior al día de hoy'
+        }
+        break
+
+      case 2: // Formato del torneo
+        if (!tournamentData.format) {
+          return 'Debes seleccionar un formato de torneo'
+        }
+        break
+
+      case 3: // Gestión de jugadores
+        if (tournamentData.players.length === 0) {
+          return 'Debes añadir al menos un jugador al torneo'
+        }
+        break
+
+      case 4: // Configuración de pistas
+        if (tournamentData.courts.length === 0) {
+          return 'Debes añadir al menos una pista al torneo'
+        }
+        break
+
+      case 5: // Configuración del torneo
+        if (!tournamentData.gamesPerRound || tournamentData.gamesPerRound < 1) {
+          return 'Debes especificar al menos 1 juego por ronda'
+        }
+        if (!tournamentData.rankingCriteria) {
+          return 'Debes seleccionar un criterio de ranking'
+        }
+        break
+
+      default:
+        break
+    }
+    return null // Todo válido
+  }
+
   const nextStep = () => {
+    // Validar el paso actual antes de avanzar
+    const validationError = validateCurrentStep()
+    if (validationError) {
+      setSubmitError(validationError)
+      return
+    }
+
+    // Limpiar error si la validación es exitosa
+    setSubmitError(null)
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     }
