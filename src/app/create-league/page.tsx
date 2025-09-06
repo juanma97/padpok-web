@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useClients } from '@/shared/hooks/useClients'
+import { useCourts } from '@/shared/hooks/useCourts'
 import { LeagueService } from '@/infrastructure/database/leagueService'
 import { UserService } from '@/infrastructure/database/userService'
 
@@ -619,17 +620,50 @@ function CourtsStep({
   data: LeagueData
   onUpdate: (updates: Partial<LeagueData>) => void 
 }) {
-  const [newCourtName, setNewCourtName] = useState('')
+  const { courts, loading: courtsLoading, addCourt: addCourtToDB } = useCourts()
+  const [newCourt, setNewCourt] = useState({
+    name: '',
+    number: ''
+  })
+  const [showExistingCourts, setShowExistingCourts] = useState(false)
 
-  const addCourt = () => {
-    if (newCourtName.trim()) {
-      const court: Court = {
-        id: Date.now().toString(),
-        name: newCourtName.trim()
+  const addCourt = async () => {
+    if (newCourt.name.trim() && newCourt.number.trim()) {
+      // Guardar en la base de datos
+      const result = await addCourtToDB({
+        name: newCourt.name.trim(),
+        number: newCourt.number.trim()
+      })
+      
+      if (result.success) {
+        // Añadir a la lista local de pistas
+        const court: Court = {
+          id: Date.now().toString(),
+          name: `${newCourt.name.trim()} ${newCourt.number.trim()}`
+        }
+        onUpdate({ courts: [...data.courts, court] })
+        setNewCourt({ name: '', number: '' })
+      } else {
+        alert(result.error || 'Error al guardar la pista')
       }
-      onUpdate({ courts: [...data.courts, court] })
-      setNewCourtName('')
     }
+  }
+
+  const addExistingCourt = (court: any) => {
+    // Verificar si ya está añadida
+    const courtDisplayName = `${court.name} ${court.number}`
+    const isAlreadyAdded = data.courts.some(c => c.name === courtDisplayName)
+    if (isAlreadyAdded) {
+      alert('Esta pista ya está añadida a la liga')
+      return
+    }
+
+    const newCourtItem: Court = {
+      id: court.id,
+      name: courtDisplayName
+    }
+    
+    onUpdate({ courts: [...data.courts, newCourtItem] })
   }
 
   const removeCourt = (courtId: string) => {
@@ -643,38 +677,94 @@ function CourtsStep({
       <h2>Configuración de Pistas</h2>
       <p>Añade las pistas donde se jugará la liga</p>
 
-      <div className="add-court-form">
-        <div className="form-row">
-          <input
-            type="text"
-            placeholder="Nombre de la pista (Ej: Pista 1, Pista Central...)"
-            value={newCourtName}
-            onChange={(e) => setNewCourtName(e.target.value)}
-          />
-          <button onClick={addCourt} className="add-btn">
-            Añadir Pista
-          </button>
-        </div>
+      {/* Botón para alternar entre añadir nueva y seleccionar existente */}
+      <div className="court-add-options">
+        <button 
+          type="button"
+          onClick={() => setShowExistingCourts(!showExistingCourts)}
+          className="toggle-btn"
+        >
+          {showExistingCourts ? 'Añadir Nueva Pista' : 'Seleccionar Pista Existente'}
+        </button>
       </div>
 
-      <div className="courts-list">
-        <h3>Pistas ({data.courts.length})</h3>
-        {data.courts.length === 0 && (
-          <p className="empty-state">No hay pistas añadidas. Añade al menos una pista.</p>
-        )}
-        {data.courts.map((court, index) => (
-          <div key={court.id} className="court-item">
-            <div className="court-info">
-              <strong>Pista {index + 1}:</strong> {court.name}
-            </div>
-            <button 
-              onClick={() => removeCourt(court.id)}
-              className="remove-btn"
-            >
-              ×
+      {!showExistingCourts ? (
+        <div className="add-court-form">
+          <h3>Añadir Nueva Pista</h3>
+          <div className="form-row">
+            <input
+              type="text"
+              placeholder="Nombre (Ej: Pista, Cancha, Campo)"
+              value={newCourt.name}
+              onChange={(e) => setNewCourt({ ...newCourt, name: e.target.value })}
+            />
+            <input
+              type="text"
+              placeholder="Número (Ej: 1, 2, A, Central)"
+              value={newCourt.number}
+              onChange={(e) => setNewCourt({ ...newCourt, number: e.target.value })}
+            />
+            <button type="button" onClick={addCourt} className="add-btn">
+              Añadir Pista
             </button>
           </div>
-        ))}
+        </div>
+      ) : (
+        <div className="existing-courts">
+          <h3>Seleccionar Pistas Existentes</h3>
+          {courtsLoading ? (
+            <div className="loading-message">Cargando pistas...</div>
+          ) : courts.length === 0 ? (
+            <div className="empty-message">
+              <p>No tienes pistas guardadas aún.</p>
+              <p>Añade tu primera pista usando el formulario de arriba.</p>
+            </div>
+          ) : (
+            <div className="courts-grid">
+              {courts.map((court) => {
+                const courtDisplayName = `${court.name} ${court.number}`
+                const isAlreadyAdded = data.courts.some(c => c.name === courtDisplayName)
+                return (
+                  <div key={court.id} className={`court-card ${isAlreadyAdded ? 'already-added' : ''}`}>
+                    <div className="court-info">
+                      <strong>{courtDisplayName}</strong>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => addExistingCourt(court)}
+                      className="add-court-btn"
+                      disabled={isAlreadyAdded}
+                    >
+                      {isAlreadyAdded ? 'Ya añadida' : 'Añadir'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="courts-list">
+        <h3>Pistas Añadidas ({data.courts.length})</h3>
+        {data.courts.length === 0 ? (
+          <p className="empty-state">No hay pistas añadidas. Añade al menos una pista.</p>
+        ) : (
+          data.courts.map((court, index) => (
+            <div key={court.id} className="court-item">
+              <div className="court-info">
+                <strong>Pista {index + 1}:</strong> {court.name}
+              </div>
+              <button 
+                type="button"
+                onClick={() => removeCourt(court.id)}
+                className="remove-btn"
+              >
+                ×
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )
