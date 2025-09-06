@@ -179,6 +179,62 @@ UPDATE leagues SET
   matches = '[]'::jsonb WHERE matches IS NULL OR matches::text = '' OR matches::text = 'null' OR matches::text = '[]' OR matches::text = '{}';
 ```
 
+---
+
+## 🎾 Sistema de Rotación de Parejas en Pádel
+
+### 🎯 Algoritmo "Todos vs Todos" con Rotación Inteligente
+
+Para ligas en formato "Todos vs Todos", la aplicación implementa un sistema de **rotación automática de parejas** que cumple con las reglas correctas del pádel:
+
+#### ✅ **Principios Fundamentales:**
+
+- **Cada jugador juega CON diferentes compañeros** a lo largo de la liga
+- **Cada jugador juega CONTRA diferentes oponentes**
+- **Rotación automática** optimizada según el número de jugadores
+- **Distribución equitativa** de pistas
+
+#### 📋 **Ejemplos de Rotación por Número de Jugadores:**
+
+**4 Jugadores (A, B, C, D):**
+
+```
+Jornada 1: A-B vs C-D
+```
+
+**6 Jugadores (A, B, C, D, E, F):**
+
+```
+Jornada 1: A-B vs C-D (E-F descansan)
+Jornada 2: A-C vs B-E (D-F descansan)
+Jornada 3: A-D vs B-F (C-E descansan)
+Jornada 4: A-E vs B-D (C-F descansan)
+Jornada 5: A-F vs B-C (D-E descansan)
+```
+
+**8 Jugadores:**
+
+```
+- Rotación completa con 2 partidos simultáneos por jornada
+- 7 jornadas para máxima variedad de enfrentamientos
+- Cada jugador juega con 7 compañeros diferentes
+```
+
+#### 🏗️ **Arquitectura Técnica:**
+
+- **`PadelRotationGeneratorService`**: Algoritmo principal de rotación
+- **Matrices predefinidas**: Para configuraciones optimizadas (4, 6, 8 jugadores)
+- **Algoritmo general**: Para otros números de jugadores
+- **Validaciones**: Números pares, mínimo 4 jugadores
+- **Cálculo de pistas**: `Math.floor(jugadores / 4)` pistas mínimas
+
+#### 📊 **Ventajas del Sistema:**
+
+1. **Equidad total**: Todos los jugadores tienen la misma experiencia
+2. **Variedad**: Diferentes parejas y oponentes en cada jornada
+3. **Optimización**: Mínimo número de jornadas para máxima rotación
+4. **Escalabilidad**: Funciona para cualquier número par de jugadores
+
 ### Tabla `tournaments`
 
 ```sql

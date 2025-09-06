@@ -148,12 +148,11 @@ export default function CreateLeaguePage() {
         if (leagueData.courts.length === 0) {
           return 'Debes añadir al menos una pista a la liga'
         }
-        // Validar que haya suficientes pistas para los partidos simultáneos
+        // Validar que haya suficientes pistas para los partidos simultáneos en rotación de pádel
         if (leagueData.players.length > 0) {
-          const pairs = Math.floor(leagueData.players.length / 2)
-          const simultaneousMatches = Math.floor(pairs / 2)
+          const simultaneousMatches = Math.floor(leagueData.players.length / 4)
           if (leagueData.courts.length < simultaneousMatches) {
-            return `Se necesitan al menos ${simultaneousMatches} pistas para ${leagueData.players.length} jugadores (${pairs} parejas). Actualmente tienes ${leagueData.courts.length} pista(s).`
+            return `Se necesitan al menos ${simultaneousMatches} pistas para ${leagueData.players.length} jugadores en rotación de pádel. Actualmente tienes ${leagueData.courts.length} pista(s).`
           }
         }
         break

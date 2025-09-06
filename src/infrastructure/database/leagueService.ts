@@ -117,7 +117,6 @@ export class LeagueService {
         return { league: null, error: error.message }
       }
 
-      console.log('data', data);
       // Parsear los campos JSON
       const league = {
         ...data,

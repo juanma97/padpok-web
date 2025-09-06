@@ -11,6 +11,7 @@ import {
 } from '@/shared/types/match'
 import { IPairGeneratorService } from './PairGeneratorService'
 import { IRoundRobinGeneratorService } from './RoundRobinGeneratorService'
+import { IPadelRotationGeneratorService } from './PadelRotationGeneratorService'
 
 export interface ILeagueCalendarService {
   generateCalendar(params: CalendarGenerationParams): CalendarGenerationResult
@@ -21,7 +22,8 @@ export class LeagueCalendarService implements ILeagueCalendarService {
   
   constructor(
     private pairGenerator: IPairGeneratorService,
-    private roundRobinGenerator: IRoundRobinGeneratorService
+    private roundRobinGenerator: IRoundRobinGeneratorService,
+    private padelRotationGenerator: IPadelRotationGeneratorService
   ) {}
 
   /**
@@ -40,12 +42,9 @@ export class LeagueCalendarService implements ILeagueCalendarService {
         }
       }
 
-      // Generar parejas aleatorias
-      const pairs = this.pairGenerator.generateRandomPairs(params.players)
-
-      // Generar calendario Round Robin
-      const rounds = this.roundRobinGenerator.generateRoundRobinMatches(
-        pairs, 
+      // Para pádel "todos vs todos", usar rotación de parejas en lugar de parejas fijas
+      const rounds = this.padelRotationGenerator.generatePadelRotation(
+        params.players,
         params.courts, 
         params.leagueId
       )
@@ -54,8 +53,8 @@ export class LeagueCalendarService implements ILeagueCalendarService {
       const calendar: LeagueCalendar = {
         leagueId: params.leagueId,
         rounds,
-        totalMatches: this.roundRobinGenerator.calculateTotalMatches(pairs.length),
-        totalRounds: this.roundRobinGenerator.calculateTotalRounds(pairs.length)
+        totalMatches: rounds.reduce((total, round) => total + round.matches.length, 0),
+        totalRounds: rounds.length
       }
 
       return {
@@ -86,11 +85,11 @@ export class LeagueCalendarService implements ILeagueCalendarService {
       }
     }
 
-    // Validar que el número de jugadores sea par
-    if (!this.pairGenerator.validatePlayerCount(players.length)) {
+    // Validar que el número de jugadores sea adecuado para rotación de pádel
+    if (!this.padelRotationGenerator.validatePlayerCount(players.length)) {
       return {
         isValid: false,
-        error: 'El número de jugadores debe ser par para formar parejas'
+        error: 'El número de jugadores debe ser par y mínimo 4 para rotación de pádel'
       }
     }
 
@@ -103,13 +102,13 @@ export class LeagueCalendarService implements ILeagueCalendarService {
     }
 
     // Validar que haya suficientes pistas para los partidos simultáneos
-    const pairs = Math.floor(players.length / 2)
-    const simultaneousMatches = Math.floor(pairs / 2)
+    // En rotación de pádel, el número de partidos simultáneos es players.length / 4
+    const simultaneousMatches = Math.floor(players.length / 4)
     
     if (courts.length < simultaneousMatches) {
       return {
         isValid: false,
-        error: `Se necesitan al menos ${simultaneousMatches} pistas para ${players.length} jugadores (${pairs} parejas). Actualmente tienes ${courts.length} pista(s).`
+        error: `Se necesitan al menos ${simultaneousMatches} pistas para ${players.length} jugadores en rotación. Actualmente tienes ${courts.length} pista(s).`
       }
     }
 
