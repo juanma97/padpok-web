@@ -208,6 +208,44 @@ CREATE POLICY "Users can delete own tournaments" ON tournaments
   FOR DELETE USING (auth.uid() = creator_id);
 ```
 
+### Tabla `clients`
+
+```sql
+CREATE TABLE clients (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name VARCHAR NOT NULL,
+  phone VARCHAR NOT NULL,
+  email VARCHAR NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, email)
+);
+```
+
+### Políticas de Seguridad para Clients
+
+```sql
+-- Habilitar RLS
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+
+-- Los usuarios solo pueden ver sus propios clientes
+CREATE POLICY "Users can view own clients" ON clients
+  FOR SELECT USING (user_id = auth.uid());
+
+-- Los usuarios pueden crear sus propios clientes
+CREATE POLICY "Users can create own clients" ON clients
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+-- Los usuarios pueden actualizar sus propios clientes
+CREATE POLICY "Users can update own clients" ON clients
+  FOR UPDATE USING (user_id = auth.uid());
+
+-- Los usuarios pueden eliminar sus propios clientes
+CREATE POLICY "Users can delete own clients" ON clients
+  FOR DELETE USING (user_id = auth.uid());
+```
+
 ### Comandos de Desarrollo
 
 ```bash

@@ -109,6 +109,44 @@ export interface Database {
           }
         ]
       }
+      clients: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          phone: string
+          email: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          phone: string
+          email: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          phone?: string
+          email?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       tournaments: {
         Row: {
           id: string
@@ -208,13 +246,16 @@ export type Updates<T extends keyof Database['public']['Tables']> = Database['pu
 export type User = Tables<'users'>
 export type League = Tables<'leagues'>
 export type Tournament = Tables<'tournaments'>
+export type Client = Tables<'clients'>
 
 // Tipos para insertar datos
 export type UserInsert = Inserts<'users'>
 export type LeagueInsert = Inserts<'leagues'>
 export type TournamentInsert = Inserts<'tournaments'>
+export type ClientInsert = Inserts<'clients'>
 
 // Tipos para actualizar datos
 export type UserUpdate = Updates<'users'>
 export type LeagueUpdate = Updates<'leagues'>
 export type TournamentUpdate = Updates<'tournaments'>
+export type ClientUpdate = Updates<'clients'>

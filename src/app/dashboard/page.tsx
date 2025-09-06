@@ -4,6 +4,7 @@ import React, { useState, memo, useMemo, useCallback } from 'react'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useLeagues } from '@/shared/hooks/useLeagues'
 import { useTournaments } from '@/shared/hooks/useTournaments'
+import { useClients } from '@/shared/hooks/useClients'
 import { useRouter } from 'next/navigation'
 
 // Tipos
@@ -577,19 +578,341 @@ const TournamentsView = memo(function TournamentsView() {
   )
 })
 
-function PlayersView() {
+// Componente para mostrar un cliente individual
+const ClientCard = memo(function ClientCard({ 
+  client, 
+  onEdit, 
+  onDelete 
+}: { 
+  client: any; 
+  onEdit: (client: any) => void;
+  onDelete: (id: string) => void;
+}) {
   return (
-    <div className="main-content">
-      <div className="content-header">
-        <h2>Mis Jugadores</h2>
-        <p>Administra la información de tus jugadores</p>
+    <div className="client-card">
+      <div className="client-info">
+        <h4 className="client-name">{client.name}</h4>
+        <div className="client-details">
+          <div className="detail-item">
+            <span className="detail-icon">📞</span>
+            <span className="detail-value">{client.phone}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-icon">✉️</span>
+            <span className="detail-value">{client.email}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-icon">📅</span>
+            <span className="detail-value">
+              {new Date(client.created_at).toLocaleDateString('es-ES')}
+            </span>
+          </div>
+        </div>
       </div>
-      <div className="placeholder-content">
-        <p>Próximamente: Lista completa de jugadores</p>
+      <div className="client-actions">
+        <button 
+          onClick={() => onEdit(client)}
+          className="action-btn secondary"
+        >
+          Editar
+        </button>
+        <button 
+          onClick={() => onDelete(client.id)}
+          className="action-btn danger"
+        >
+          Eliminar
+        </button>
       </div>
     </div>
   )
-}
+})
+
+// Componente del formulario modal
+const ClientFormModal = memo(function ClientFormModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  loading
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { name: string; phone: string; email: string }) => void;
+  initialData?: { name: string; phone: string; email: string } | null;
+  loading: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    name: initialData?.name || '',
+    phone: initialData?.phone || '',
+    email: initialData?.email || ''
+  })
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+
+  const validateForm = useCallback(() => {
+    const newErrors: { [key: string]: string } = {}
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'El nombre es obligatorio'
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'El teléfono es obligatorio'
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'El email es obligatorio'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Formato de email inválido'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }, [formData])
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault()
+    if (validateForm()) {
+      console.log('Submitting form data:', formData)
+      onSubmit(formData)
+    }
+  }, [formData, validateForm, onSubmit])
+
+  const handleInputChange = useCallback((field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }, [errors])
+
+  if (!isOpen) return null
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{initialData ? 'Editar Jugador' : 'Nuevo Jugador'}</h3>
+          <button onClick={onClose} className="modal-close">×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="client-form">
+          <div className="form-group">
+            <label htmlFor="name">Nombre completo</label>
+            <input
+              id="name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              className={errors.name ? 'error' : ''}
+              placeholder="Introduce el nombre completo"
+              disabled={loading}
+            />
+            {errors.name && <span className="error-message">{errors.name}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="phone">Teléfono</label>
+            <input
+              id="phone"
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+              className={errors.phone ? 'error' : ''}
+              placeholder="Introduce el número de teléfono"
+              disabled={loading}
+            />
+            {errors.phone && <span className="error-message">{errors.phone}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              className={errors.email ? 'error' : ''}
+              placeholder="Introduce el email"
+              disabled={loading}
+            />
+            {errors.email && <span className="error-message">{errors.email}</span>}
+          </div>
+
+          <div className="form-actions">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="action-btn secondary"
+              disabled={loading}
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              className="action-btn primary"
+              disabled={loading}
+            >
+              {loading ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+})
+
+// Componente de vista para jugadores memoizado
+const PlayersView = memo(function PlayersView() {
+  const { clients, loading, error, refetchClients, addClient, updateClient, deleteClient } = useClients()
+  
+  const [showModal, setShowModal] = useState(false)
+  const [editingClient, setEditingClient] = useState<any>(null)
+  const [formLoading, setFormLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
+  const handleAddClient = useCallback(() => {
+    setEditingClient(null)
+    setShowModal(true)
+  }, [])
+
+  const handleEditClient = useCallback((client: any) => {
+    setEditingClient(client)
+    setShowModal(true)
+  }, [])
+
+  const handleFormSubmit = useCallback(async (formData: { name: string; phone: string; email: string }) => {
+    setFormLoading(true)
+    
+    try {
+      let result
+      if (editingClient) {
+        result = await updateClient(editingClient.id, formData)
+      } else {
+        result = await addClient(formData)
+      }
+
+      if (result.success) {
+        setShowModal(false)
+        setEditingClient(null)
+        setSuccessMessage(`Jugador ${editingClient ? 'actualizado' : 'creado'} exitosamente`)
+        setTimeout(() => setSuccessMessage(''), 3000)
+      } else {
+        alert(result.error || 'Error al procesar la solicitud')
+      }
+    } catch (err) {
+      alert('Error inesperado al procesar la solicitud')
+    } finally {
+      setFormLoading(false)
+    }
+  }, [editingClient, addClient, updateClient])
+
+  const handleDeleteClient = useCallback(async (id: string) => {
+    if (deleteConfirm === id) {
+      const result = await deleteClient(id)
+      if (result.success) {
+        setSuccessMessage('Jugador eliminado exitosamente')
+        setTimeout(() => setSuccessMessage(''), 3000)
+      } else {
+        alert(result.error || 'Error al eliminar jugador')
+      }
+      setDeleteConfirm(null)
+    } else {
+      setDeleteConfirm(id)
+      setTimeout(() => setDeleteConfirm(null), 3000)
+    }
+  }, [deleteConfirm, deleteClient])
+
+  if (loading) {
+    return (
+      <div className="main-content">
+        <div className="content-header">
+          <h2>Mis Jugadores</h2>
+          <p>Administra la información de tus jugadores</p>
+        </div>
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Cargando jugadores...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="main-content">
+        <div className="content-header">
+          <h2>Mis Jugadores</h2>
+          <p>Administra la información de tus jugadores</p>
+        </div>
+        <div className="error-container">
+          <p className="error-message">{error}</p>
+          <button onClick={refetchClients} className="retry-btn">
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="main-content">
+      <div className="content-header">
+        <div className="header-content">
+        <h2>Mis Jugadores</h2>
+        <p>Administra la información de tus jugadores</p>
+      </div>
+        <button 
+          onClick={handleAddClient}
+          className="action-btn primary"
+        >
+          + Añadir Jugador
+        </button>
+      </div>
+
+      {successMessage && (
+        <div className="success-message">
+          {successMessage}
+        </div>
+      )}
+
+      {clients.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">👥</div>
+          <h3>No tienes jugadores registrados</h3>
+          <p>Añade tu primer jugador para empezar a gestionar tu base de datos</p>
+          <button 
+            onClick={handleAddClient}
+            className="action-btn primary"
+          >
+            Añadir Primer Jugador
+          </button>
+        </div>
+      ) : (
+        <div className="clients-grid">
+          {clients.map((client) => (
+            <ClientCard
+              key={client.id}
+              client={client}
+              onEdit={handleEditClient}
+              onDelete={handleDeleteClient}
+            />
+          ))}
+        </div>
+      )}
+
+      <ClientFormModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false)
+          setEditingClient(null)
+        }}
+        onSubmit={handleFormSubmit}
+        initialData={editingClient}
+        loading={formLoading}
+      />
+    </div>
+  )
+})
 
 function CourtsView() {
   return (
@@ -675,6 +998,232 @@ export default function DashboardPage() {
       <main className="dashboard-main-area">
         {mainContent}
       </main>
+
+      {/* Estilos para los componentes de clientes */}
+      <style jsx>{`
+        .header-content {
+          flex: 1;
+        }
+
+        .content-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 2rem;
+          gap: 1rem;
+        }
+
+        .success-message {
+          background-color: #d4edda;
+          color: #155724;
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+          border: 1px solid #c3e6cb;
+        }
+
+        .clients-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .client-card {
+          background: white;
+          border-radius: 12px;
+          padding: 1.5rem;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .client-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .client-name {
+          color: #333;
+          margin-bottom: 1rem;
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+
+        .client-details {
+          margin-bottom: 1.5rem;
+        }
+
+        .detail-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+          font-size: 0.9rem;
+          color: #666;
+        }
+
+        .detail-icon {
+          font-size: 1rem;
+        }
+
+        .client-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .action-btn {
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 0.85rem;
+          font-weight: 500;
+          transition: all 0.2s;
+          flex: 1;
+        }
+
+        .action-btn.primary {
+          background-color: #007bff;
+          color: white;
+        }
+
+        .action-btn.primary:hover {
+          background-color: #0056b3;
+        }
+
+        .action-btn.secondary {
+          background-color: #6c757d;
+          color: white;
+        }
+
+        .action-btn.secondary:hover {
+          background-color: #545b62;
+        }
+
+        .action-btn.danger {
+          background-color: #dc3545;
+          color: white;
+        }
+
+        .action-btn.danger:hover {
+          background-color: #c82333;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 12px;
+          width: 90%;
+          max-width: 500px;
+          max-height: 80vh;
+          overflow-y: auto;
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem;
+          border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h3 {
+          margin: 0;
+          color: #333;
+        }
+
+        .modal-close {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          cursor: pointer;
+          color: #666;
+          padding: 0;
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .client-form {
+          padding: 1.5rem;
+        }
+
+        .form-group {
+          margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+          display: block;
+          margin-bottom: 0.5rem;
+          color: #333;
+          font-weight: 500;
+        }
+
+        .form-group input {
+          width: 100%;
+          padding: 0.75rem;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 1rem;
+          box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+          outline: none;
+          border-color: #007bff;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .form-group input.error {
+          border-color: #dc3545;
+        }
+
+        .error-message {
+          color: #dc3545;
+          font-size: 0.85rem;
+          margin-top: 0.25rem;
+          display: block;
+        }
+
+        .form-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: flex-end;
+          margin-top: 2rem;
+        }
+
+        .form-actions .action-btn {
+          min-width: 100px;
+          flex: none;
+        }
+
+        .retry-btn {
+          background-color: #007bff;
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 1rem;
+        }
+
+        .retry-btn:hover {
+          background-color: #0056b3;
+        }
+      `}</style>
     </div>
   )
 }
