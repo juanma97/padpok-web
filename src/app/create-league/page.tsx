@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
+import { useClients } from '@/shared/hooks/useClients'
 import { LeagueService } from '@/infrastructure/database/leagueService'
 import { UserService } from '@/infrastructure/database/userService'
 
@@ -141,7 +142,6 @@ export default function CreateLeaguePage() {
         status: 'draft' as const
       }
 
-      console.log('Guardando liga:', leagueDataForDB)
       
       // Guardar en base de datos
       const { league, error } = await LeagueService.createLeague(leagueDataForDB)
@@ -157,8 +157,6 @@ export default function CreateLeaguePage() {
         setSubmitError('Error inesperado al crear la liga')
         return
       }
-
-      console.log('Liga creada exitosamente:', league)
       
       // Redirigir al dashboard
       router.push('/dashboard')
@@ -396,22 +394,63 @@ function PlayersStep({
   data: LeagueData
   onUpdate: (updates: Partial<LeagueData>) => void 
 }) {
+  const { clients, loading: clientsLoading, addClient } = useClients()
   const [newPlayer, setNewPlayer] = useState({
     name: '',
     lastName: '',
     phone: '',
     email: ''
   })
+  const [showExistingClients, setShowExistingClients] = useState(false)
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([])
 
-  const addPlayer = () => {
+  const addPlayer = async () => {
     if (newPlayer.name && newPlayer.lastName) {
-      const player: Player = {
-        id: Date.now().toString(),
-        ...newPlayer
+      // Guardar en la base de datos
+      const clientData = {
+        name: `${newPlayer.name} ${newPlayer.lastName}`,
+        phone: newPlayer.phone,
+        email: newPlayer.email
       }
-      onUpdate({ players: [...data.players, player] })
-      setNewPlayer({ name: '', lastName: '', phone: '', email: '' })
+      
+      const result = await addClient(clientData)
+      
+      if (result.success) {
+        // Añadir a la lista local de jugadores
+        const player: Player = {
+          id: Date.now().toString(),
+          ...newPlayer
+        }
+        onUpdate({ players: [...data.players, player] })
+        setNewPlayer({ name: '', lastName: '', phone: '', email: '' })
+      } else {
+        alert(result.error || 'Error al guardar el jugador')
+      }
     }
+  }
+
+  const addExistingClient = (client: any) => {
+    // Verificar si ya está añadido
+    const isAlreadyAdded = data.players.some(p => p.email === client.email)
+    if (isAlreadyAdded) {
+      alert('Este jugador ya está añadido a la liga')
+      return
+    }
+
+    // Separar nombre y apellidos (asumiendo que están en un solo campo)
+    const nameParts = client.name.split(' ')
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+
+    const player: Player = {
+      id: client.id,
+      name: firstName,
+      lastName: lastName,
+      phone: client.phone,
+      email: client.email
+    }
+    
+    onUpdate({ players: [...data.players, player] })
   }
 
   const removePlayer = (playerId: string) => {
@@ -451,57 +490,111 @@ function PlayersStep({
 
       {data.playerManagement === 'manual' && (
         <div className="manual-players">
-          <div className="add-player-form">
-            <h3>Añadir Jugador</h3>
-            <div className="form-row">
-              <input
-                type="text"
-                placeholder="Nombre"
-                value={newPlayer.name}
-                onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
-              />
-              <input
-                type="text"
-                placeholder="Apellidos"
-                value={newPlayer.lastName}
-                onChange={(e) => setNewPlayer({ ...newPlayer, lastName: e.target.value })}
-              />
-            </div>
-            <div className="form-row">
-              <input
-                type="tel"
-                placeholder="Teléfono"
-                value={newPlayer.phone}
-                onChange={(e) => setNewPlayer({ ...newPlayer, phone: e.target.value })}
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={newPlayer.email}
-                onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
-              />
-            </div>
-            <button onClick={addPlayer} className="add-btn">
-              Añadir Jugador
+          {/* Botón para alternar entre añadir nuevo y seleccionar existente */}
+          <div className="player-add-options">
+            <button 
+              type="button"
+              onClick={() => setShowExistingClients(!showExistingClients)}
+              className="toggle-btn"
+            >
+              {showExistingClients ? 'Añadir Nuevo Jugador' : 'Seleccionar Jugador Existente'}
             </button>
           </div>
 
-          <div className="players-list">
-            <h3>Jugadores ({data.players.length})</h3>
-            {data.players.map((player) => (
-              <div key={player.id} className="player-item">
-                <div className="player-info">
-                  <strong>{player.name} {player.lastName}</strong>
-                  <span>{player.phone} | {player.email}</span>
-                </div>
-                <button 
-                  onClick={() => removePlayer(player.id)}
-                  className="remove-btn"
-                >
-                  ×
-                </button>
+          {!showExistingClients ? (
+            <div className="add-player-form">
+              <h3>Añadir Nuevo Jugador</h3>
+              <div className="form-row">
+                <input
+                  type="text"
+                  placeholder="Nombre"
+                  value={newPlayer.name}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="Apellidos"
+                  value={newPlayer.lastName}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, lastName: e.target.value })}
+                />
               </div>
-            ))}
+              <div className="form-row">
+                <input
+                  type="tel"
+                  placeholder="Teléfono"
+                  value={newPlayer.phone}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, phone: e.target.value })}
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={newPlayer.email}
+                  onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
+                />
+              </div>
+              <button type="button" onClick={addPlayer} className="add-btn">
+                Añadir Jugador
+              </button>
+            </div>
+          ) : (
+            <div className="existing-clients">
+              <h3>Seleccionar Jugadores Existentes</h3>
+              {clientsLoading ? (
+                <div className="loading-message">Cargando jugadores...</div>
+              ) : clients.length === 0 ? (
+                <div className="empty-message">
+                  <p>No tienes jugadores guardados aún.</p>
+                  <p>Añade tu primer jugador usando el formulario de arriba.</p>
+                </div>
+              ) : (
+                <div className="clients-list">
+                  {clients.map((client) => {
+                    const isAlreadyAdded = data.players.some(p => p.email === client.email)
+                    return (
+                      <div key={client.id} className={`client-item ${isAlreadyAdded ? 'already-added' : ''}`}>
+                        <div className="client-info">
+                          <strong>{client.name}</strong>
+                          <span>{client.phone} | {client.email}</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => addExistingClient(client)}
+                          className="add-client-btn"
+                          disabled={isAlreadyAdded}
+                        >
+                          {isAlreadyAdded ? 'Ya añadido' : 'Añadir'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="players-list">
+            <h3>Jugadores Añadidos ({data.players.length})</h3>
+            {data.players.length === 0 ? (
+              <div className="empty-state">
+                <p>No hay jugadores añadidos aún</p>
+              </div>
+            ) : (
+              data.players.map((player) => (
+                <div key={player.id} className="player-item">
+                  <div className="player-info">
+                    <strong>{player.name} {player.lastName}</strong>
+                    <span>{player.phone} | {player.email}</span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => removePlayer(player.id)}
+                    className="remove-btn"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}

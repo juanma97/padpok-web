@@ -70,7 +70,6 @@ export default function CompleteProfilePage() {
         return
       }
 
-      console.log('Perfil guardado exitosamente:', savedUser)
       
       // Redirigir al dashboard
       router.push('/dashboard')
