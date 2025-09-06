@@ -246,6 +246,43 @@ CREATE POLICY "Users can delete own clients" ON clients
   FOR DELETE USING (user_id = auth.uid());
 ```
 
+### Tabla `courts`
+
+```sql
+CREATE TABLE courts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name VARCHAR NOT NULL,
+  number VARCHAR NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, name, number)
+);
+```
+
+### Políticas de Seguridad para Courts
+
+```sql
+-- Habilitar RLS
+ALTER TABLE courts ENABLE ROW LEVEL SECURITY;
+
+-- Los usuarios solo pueden ver sus propias pistas
+CREATE POLICY "Users can view own courts" ON courts
+  FOR SELECT USING (user_id = auth.uid());
+
+-- Los usuarios pueden crear sus propias pistas
+CREATE POLICY "Users can create own courts" ON courts
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+-- Los usuarios pueden actualizar sus propias pistas
+CREATE POLICY "Users can update own courts" ON courts
+  FOR UPDATE USING (user_id = auth.uid());
+
+-- Los usuarios pueden eliminar sus propias pistas
+CREATE POLICY "Users can delete own courts" ON courts
+  FOR DELETE USING (user_id = auth.uid());
+```
+
 ### Comandos de Desarrollo
 
 ```bash

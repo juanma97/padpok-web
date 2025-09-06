@@ -31,7 +31,6 @@ export const useAuth = () => {
           return
         }
 
-        console.log('Initial session:', session?.user?.email || 'No user')
         setAuthState({
           user: session?.user ?? null,
           session,
@@ -53,7 +52,6 @@ export const useAuth = () => {
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email || 'No user')
         setAuthState({
           user: session?.user ?? null,
           session,

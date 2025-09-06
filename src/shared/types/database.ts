@@ -147,6 +147,41 @@ export interface Database {
           }
         ]
       }
+      courts: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          number: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          number: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          number?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       tournaments: {
         Row: {
           id: string
@@ -247,15 +282,18 @@ export type User = Tables<'users'>
 export type League = Tables<'leagues'>
 export type Tournament = Tables<'tournaments'>
 export type Client = Tables<'clients'>
+export type Court = Tables<'courts'>
 
 // Tipos para insertar datos
 export type UserInsert = Inserts<'users'>
 export type LeagueInsert = Inserts<'leagues'>
 export type TournamentInsert = Inserts<'tournaments'>
 export type ClientInsert = Inserts<'clients'>
+export type CourtInsert = Inserts<'courts'>
 
 // Tipos para actualizar datos
 export type UserUpdate = Updates<'users'>
 export type LeagueUpdate = Updates<'leagues'>
 export type TournamentUpdate = Updates<'tournaments'>
 export type ClientUpdate = Updates<'clients'>
+export type CourtUpdate = Updates<'courts'>

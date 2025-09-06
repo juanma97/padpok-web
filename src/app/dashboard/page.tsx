@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/hooks/useAuth'
 import { useLeagues } from '@/shared/hooks/useLeagues'
 import { useTournaments } from '@/shared/hooks/useTournaments'
 import { useClients } from '@/shared/hooks/useClients'
+import { useCourts } from '@/shared/hooks/useCourts'
 import { useRouter } from 'next/navigation'
 
 // Tipos
@@ -672,7 +673,6 @@ const ClientFormModal = memo(function ClientFormModal({
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
-      console.log('Submitting form data:', formData)
       onSubmit(formData)
     }
   }, [formData, validateForm, onSubmit])
@@ -914,19 +914,319 @@ const PlayersView = memo(function PlayersView() {
   )
 })
 
-function CourtsView() {
+// Componente para mostrar una pista individual
+const CourtCard = memo(function CourtCard({ 
+  court, 
+  onEdit, 
+  onDelete 
+}: { 
+  court: any; 
+  onEdit: (court: any) => void;
+  onDelete: (id: string) => void;
+}) {
   return (
-    <div className="main-content">
-      <div className="content-header">
-        <h2>Mis Jugadores</h2>
-        <p>Administra la información de tus pistas</p>
+    <div className="client-card">
+      <div className="client-info">
+        <h4 className="client-name">{court.name} {court.number}</h4>
+        <div className="client-details">
+          <div className="detail-item">
+            <span className="detail-icon">🏟️</span>
+            <span className="detail-value">Nombre: {court.name}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-icon">#️⃣</span>
+            <span className="detail-value">Número: {court.number}</span>
+          </div>
+          <div className="detail-item">
+            <span className="detail-icon">📅</span>
+            <span className="detail-value">
+              {new Date(court.created_at).toLocaleDateString('es-ES')}
+            </span>
+          </div>
+        </div>
       </div>
-      <div className="placeholder-content">
-        <p>Próximamente: Lista completa de pistas</p>
+      <div className="client-actions">
+        <button 
+          onClick={() => onEdit(court)}
+          className="action-btn secondary"
+        >
+          Editar
+        </button>
+        <button 
+          onClick={() => onDelete(court.id)}
+          className="action-btn danger"
+        >
+          Eliminar
+        </button>
       </div>
     </div>
   )
-}
+})
+
+// Componente del formulario modal para pistas
+const CourtFormModal = memo(function CourtFormModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  loading
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: { name: string; number: string }) => void;
+  initialData?: { name: string; number: string } | null;
+  loading: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    name: initialData?.name || '',
+    number: initialData?.number || ''
+  })
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
+
+  const validateForm = useCallback(() => {
+    const newErrors: { [key: string]: string } = {}
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'El nombre es obligatorio'
+    }
+
+    if (!formData.number.trim()) {
+      newErrors.number = 'El número es obligatorio'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }, [formData])
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault()
+    if (validateForm()) {
+      onSubmit(formData)
+    }
+  }, [formData, validateForm, onSubmit])
+
+  const handleInputChange = useCallback((field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }, [errors])
+
+  if (!isOpen) return null
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{initialData ? 'Editar Pista' : 'Nueva Pista'}</h3>
+          <button onClick={onClose} className="modal-close">×</button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="client-form">
+          <div className="form-group">
+            <label htmlFor="name">Nombre de la pista</label>
+            <input
+              id="name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              className={errors.name ? 'error' : ''}
+              placeholder="Ej: Pista"
+              disabled={loading}
+            />
+            {errors.name && <span className="error-message">{errors.name}</span>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="number">Número</label>
+            <input
+              id="number"
+              type="text"
+              value={formData.number}
+              onChange={(e) => handleInputChange('number', e.target.value)}
+              className={errors.number ? 'error' : ''}
+              placeholder="Ej: 4"
+              disabled={loading}
+            />
+            {errors.number && <span className="error-message">{errors.number}</span>}
+          </div>
+
+          <div className="form-actions">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="action-btn secondary"
+              disabled={loading}
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              className="action-btn primary"
+              disabled={loading}
+            >
+              {loading ? 'Guardando...' : (initialData ? 'Actualizar' : 'Crear')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+})
+
+// Componente de vista para pistas memoizado
+const CourtsView = memo(function CourtsView() {
+  const { courts, loading, error, refetchCourts, addCourt, updateCourt, deleteCourt } = useCourts()
+  
+  const [showModal, setShowModal] = useState(false)
+  const [editingCourt, setEditingCourt] = useState<any>(null)
+  const [formLoading, setFormLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
+  const handleAddCourt = useCallback(() => {
+    setEditingCourt(null)
+    setShowModal(true)
+  }, [])
+
+  const handleEditCourt = useCallback((court: any) => {
+    setEditingCourt(court)
+    setShowModal(true)
+  }, [])
+
+  const handleFormSubmit = useCallback(async (formData: { name: string; number: string }) => {
+    setFormLoading(true)
+    
+    try {
+      let result
+      if (editingCourt) {
+        result = await updateCourt(editingCourt.id, formData)
+      } else {
+        result = await addCourt(formData)
+      }
+
+      if (result.success) {
+        setShowModal(false)
+        setEditingCourt(null)
+        setSuccessMessage(`Pista ${editingCourt ? 'actualizada' : 'creada'} exitosamente`)
+        setTimeout(() => setSuccessMessage(''), 3000)
+      } else {
+        alert(result.error || 'Error al procesar la solicitud')
+      }
+    } catch (err) {
+      alert('Error inesperado al procesar la solicitud')
+    } finally {
+      setFormLoading(false)
+    }
+  }, [editingCourt, addCourt, updateCourt])
+
+  const handleDeleteCourt = useCallback(async (id: string) => {
+    if (deleteConfirm === id) {
+      const result = await deleteCourt(id)
+      if (result.success) {
+        setSuccessMessage('Pista eliminada exitosamente')
+        setTimeout(() => setSuccessMessage(''), 3000)
+      } else {
+        alert(result.error || 'Error al eliminar pista')
+      }
+      setDeleteConfirm(null)
+    } else {
+      setDeleteConfirm(id)
+      setTimeout(() => setDeleteConfirm(null), 3000)
+    }
+  }, [deleteConfirm, deleteCourt])
+
+  if (loading) {
+    return (
+      <div className="main-content">
+        <div className="content-header">
+          <h2>Mis Pistas</h2>
+          <p>Administra la información de tus pistas</p>
+        </div>
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Cargando pistas...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="main-content">
+        <div className="content-header">
+          <h2>Mis Pistas</h2>
+          <p>Administra la información de tus pistas</p>
+        </div>
+        <div className="error-container">
+          <p className="error-message">{error}</p>
+          <button onClick={refetchCourts} className="retry-btn">
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="main-content">
+      <div className="content-header">
+        <div className="header-content">
+          <h2>Mis Pistas</h2>
+          <p>Administra la información de tus pistas</p>
+        </div>
+        <button 
+          onClick={handleAddCourt}
+          className="action-btn primary"
+        >
+          + Añadir Pista
+        </button>
+      </div>
+
+      {successMessage && (
+        <div className="success-message">
+          {successMessage}
+        </div>
+      )}
+
+      {courts.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">🏟️</div>
+          <h3>No tienes pistas registradas</h3>
+          <p>Añade tu primera pista para empezar a gestionar tus instalaciones</p>
+          <button 
+            onClick={handleAddCourt}
+            className="action-btn primary"
+          >
+            Añadir Primera Pista
+          </button>
+        </div>
+      ) : (
+        <div className="clients-grid">
+          {courts.map((court) => (
+            <CourtCard
+              key={court.id}
+              court={court}
+              onEdit={handleEditCourt}
+              onDelete={handleDeleteCourt}
+            />
+          ))}
+        </div>
+      )}
+
+      <CourtFormModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false)
+          setEditingCourt(null)
+        }}
+        onSubmit={handleFormSubmit}
+        initialData={editingCourt}
+        loading={formLoading}
+      />
+    </div>
+  )
+})
 
 // Componente principal del Dashboard
 export default function DashboardPage() {
