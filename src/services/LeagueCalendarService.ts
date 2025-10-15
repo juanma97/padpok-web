@@ -1,7 +1,3 @@
-// Servicio principal para generar calendarios de liga
-// Principio de Responsabilidad Única: Orquesta la generación completa del calendario
-// Principio de Inversión de Dependencias: Depende de abstracciones, no de implementaciones concretas
-
 import { 
   Player, 
   Court, 
@@ -26,14 +22,8 @@ export class LeagueCalendarService implements ILeagueCalendarService {
     private padelRotationGenerator: IPadelRotationGeneratorService
   ) {}
 
-  /**
-   * Genera un calendario completo para una liga
-   * @param params Parámetros para la generación del calendario
-   * @returns Resultado de la generación del calendario
-   */
   generateCalendar(params: CalendarGenerationParams): CalendarGenerationResult {
     try {
-      // Validar entrada
       const validation = this.validateCalendarGeneration(params.players, params.courts)
       if (!validation.isValid) {
         return {
@@ -42,14 +32,12 @@ export class LeagueCalendarService implements ILeagueCalendarService {
         }
       }
 
-      // Para pádel "todos vs todos", usar rotación de parejas en lugar de parejas fijas
       const rounds = this.padelRotationGenerator.generatePadelRotation(
         params.players,
         params.courts, 
         params.leagueId
       )
 
-      // Crear el calendario completo
       const calendar: LeagueCalendar = {
         leagueId: params.leagueId,
         rounds,
@@ -70,14 +58,7 @@ export class LeagueCalendarService implements ILeagueCalendarService {
     }
   }
 
-  /**
-   * Valida que los parámetros sean adecuados para generar un calendario
-   * @param players Lista de jugadores
-   * @param courts Lista de pistas
-   * @returns Resultado de la validación
-   */
   validateCalendarGeneration(players: Player[], courts: Court[]): { isValid: boolean; error?: string } {
-    // Validar número mínimo de jugadores
     if (players.length < 4) {
       return {
         isValid: false,
@@ -85,7 +66,6 @@ export class LeagueCalendarService implements ILeagueCalendarService {
       }
     }
 
-    // Validar que el número de jugadores sea adecuado para rotación de pádel
     if (!this.padelRotationGenerator.validatePlayerCount(players.length)) {
       return {
         isValid: false,
@@ -93,7 +73,6 @@ export class LeagueCalendarService implements ILeagueCalendarService {
       }
     }
 
-    // Validar número mínimo de pistas
     if (courts.length === 0) {
       return {
         isValid: false,
@@ -101,8 +80,6 @@ export class LeagueCalendarService implements ILeagueCalendarService {
       }
     }
 
-    // Validar que haya suficientes pistas para los partidos simultáneos
-    // En rotación de pádel, el número de partidos simultáneos es players.length / 4
     const simultaneousMatches = Math.floor(players.length / 4)
     
     if (courts.length < simultaneousMatches) {
