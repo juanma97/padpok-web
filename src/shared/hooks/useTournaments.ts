@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from './useAuth'
-import { TournamentService } from '@/infrastructure/database/tournamentService'
-import { UserService } from '@/infrastructure/database/userService'
+import { TournamentService } from '@/backend/tournamentService'
+import { UserService } from '@/backend/userService'
 interface TournamentRecord {
   id: string
   creator_id: string

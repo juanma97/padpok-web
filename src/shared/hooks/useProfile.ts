@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/infrastructure/database/supabase'
-import { User, UserInsert, UserUpdate } from '@/shared/types/database'
+import { supabase } from '@/backend/supabase'
+import { User, UserInsert, UserUpdate } from '@/backend/database'
 import { useAuth } from './useAuth'
 
 interface ProfileState {

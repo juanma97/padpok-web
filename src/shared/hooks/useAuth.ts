@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
-import { supabase } from '@/infrastructure/database/supabase'
+import { supabase } from '@/backend/supabase'
 
 interface AuthState {
   user: User | null

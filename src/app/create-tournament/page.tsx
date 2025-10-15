@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useClients } from '@/shared/hooks/useClients'
 import { useCourts } from '@/shared/hooks/useCourts'
-import { TournamentService } from '@/infrastructure/database/tournamentService'
-import { UserService } from '@/infrastructure/database/userService'
-import { TournamentCalendarFactory } from '@/application/factories/TournamentCalendarFactory'
+import { TournamentService } from '@/backend/tournamentService'
+import { UserService } from '@/backend/userService'
+import { TournamentCalendarFactory } from '@/factories/TournamentCalendarFactory'
 
 // Tipos para el torneo
 export interface Player {

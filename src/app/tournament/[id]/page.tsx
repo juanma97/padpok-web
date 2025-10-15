@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
-import { TournamentService } from '@/infrastructure/database/tournamentService'
+import { TournamentService } from '@/backend/tournamentService'
 import { TournamentRound } from '@/shared/types/match'
 
 interface TournamentRecord {

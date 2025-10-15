@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './useAuth'
-import { ClientService } from '@/infrastructure/database/clientService'
+import { ClientService } from '@/backend/clientService'
 
 interface Client {
   id: string

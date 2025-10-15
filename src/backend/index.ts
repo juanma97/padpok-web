@@ -7,4 +7,4 @@ export { LeagueService } from './leagueService'
 export { TournamentService } from './tournamentService'
 
 // Exportar tipos de base de datos
-export * from '@/shared/types/database'
+export * from '@/backend/database'

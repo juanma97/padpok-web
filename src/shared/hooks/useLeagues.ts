@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './useAuth'
-import { LeagueService } from '@/infrastructure/database/leagueService'
-import { UserService } from '@/infrastructure/database/userService'
-import type { League } from '@/shared/types/database'
+import { LeagueService } from '@/backend/leagueService'
+import { UserService } from '@/backend/userService'
+import type { League } from '@/backend/database'
 
 interface LeaguesState {
   leagues: League[]

@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useClients } from '@/shared/hooks/useClients'
 import { useCourts } from '@/shared/hooks/useCourts'
-import { LeagueService } from '@/infrastructure/database/leagueService'
-import { UserService } from '@/infrastructure/database/userService'
-import { LeagueCalendarFactory } from '@/application/factories/LeagueCalendarFactory'
+import { LeagueService } from '@/backend/leagueService'
+import { UserService } from '@/backend/userService'
+import { LeagueCalendarFactory } from '@/factories/LeagueCalendarFactory'
 import { Player as CalendarPlayer, Court as CalendarCourt } from '@/shared/types/match'
 
 // Tipos para la liga

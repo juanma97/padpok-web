@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
-import { UserService } from '@/infrastructure/database/userService'
+import { UserService } from '@/backend/userService'
 
 interface ProfileData {
   name: string

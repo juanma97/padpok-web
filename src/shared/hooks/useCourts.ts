@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './useAuth'
-import { CourtService } from '@/infrastructure/database/courtService'
+import { CourtService } from '@/backend/courtService'
 
 interface Court {
   id: string

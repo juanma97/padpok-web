@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/hooks/useAuth'
-import { LeagueService } from '@/infrastructure/database/leagueService'
+import { LeagueService } from '@/backend/leagueService'
 import { Match, Round } from '@/shared/types/match'
 
 interface LeagueRecord {
