@@ -254,6 +254,7 @@ CREATE TABLE tournaments (
   ranking_criteria VARCHAR NOT NULL DEFAULT 'points' CHECK (ranking_criteria IN ('points', 'wins')),
   sit_out_points INTEGER NOT NULL DEFAULT 0 CHECK (sit_out_points >= 0 AND sit_out_points <= 50),
   status VARCHAR NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed', 'cancelled')),
+  matches JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -282,6 +283,83 @@ CREATE POLICY "Users can delete own tournaments" ON tournaments
   FOR DELETE USING (auth.uid() = creator_id);
 ```
 
+### Migración para añadir campo `matches` a tournaments
+
+Si ya tienes la tabla creada, ejecuta este comando para añadir el campo `matches`:
+
+```sql
+-- Añadir campo matches a tabla tournaments existente
+ALTER TABLE tournaments ADD COLUMN matches JSONB DEFAULT '[]'::jsonb;
+
+-- Limpiar TODOS los campos JSON corruptos (ejecutar si hay problemas de parsing):
+UPDATE tournaments SET
+  players = '[]'::jsonb WHERE players IS NULL OR players::text = '' OR players::text = 'null';
+UPDATE tournaments SET
+  courts = '[]'::jsonb WHERE courts IS NULL OR courts::text = '' OR courts::text = 'null';
+UPDATE tournaments SET
+  matches = '[]'::jsonb WHERE matches IS NULL OR matches::text = '' OR matches::text = 'null' OR matches::text = '[]' OR matches::text = '{}';
+```
+
+---
+
+## 🏆 Sistema de Generación Automática de Cuadros de Torneo
+
+### 🎯 Algoritmo "Classic Americano" con Rotación Inteligente
+
+Para torneos en formato "Classic Americano", la aplicación implementa un sistema de **generación automática de cuadros** que optimiza la rotación de parejas:
+
+#### ✅ **Principios Fundamentales:**
+
+- **Rotación automática de parejas** cada ronda
+- **Distribución equitativa** de enfrentamientos
+- **Manejo inteligente** de jugadores que descansan
+- **Optimización** según número de pistas disponibles
+
+#### 📋 **Ejemplos de Cuadros por Número de Jugadores:**
+
+**4 Jugadores (A, B, C, D):**
+
+```
+Ronda 1: A-B vs C-D
+```
+
+**6 Jugadores (A, B, C, D, E, F):**
+
+```
+Ronda 1: A-B vs C-D (E-F descansan)
+Ronda 2: A-C vs B-E (D-F descansan)
+Ronda 3: A-D vs B-F (C-E descansan)
+Ronda 4: A-E vs B-D (C-F descansan)
+Ronda 5: A-F vs B-C (D-E descansan)
+```
+
+**8 Jugadores:**
+
+```
+- Cuadro completo con 2 partidos simultáneos por ronda
+- 7 rondas para máxima variedad de enfrentamientos
+- Cada jugador juega con diferentes compañeros
+```
+
+#### 🏗️ **Arquitectura Técnica:**
+
+- **`AmericanoTournamentGeneratorService`**: Algoritmo principal de generación
+- **`TournamentCalendarService`**: Orquestador principal con validaciones
+- **`TournamentCalendarFactory`**: Inyección de dependencias
+- **Matrices predefinidas**: Para configuraciones optimizadas (4, 6, 8 jugadores)
+- **Algoritmo general**: Para otros números de jugadores
+- **Campo `matches`**: Almacena el cuadro completo en formato JSONB
+
+#### 📊 **Ventajas del Sistema:**
+
+1. **Generación automática**: Cuadros listos al crear el torneo
+2. **Rotación optimizada**: Máxima variedad de enfrentamientos
+3. **Validaciones inteligentes**: Previene configuraciones inválidas
+4. **Estadísticas en tiempo real**: Duración, partidos, rondas
+5. **Escalabilidad**: Funciona para 4-16 jugadores (números pares)
+
+````
+
 ### Tabla `clients`
 
 ```sql
@@ -295,7 +373,7 @@ CREATE TABLE clients (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, email)
 );
-```
+````
 
 ### Políticas de Seguridad para Clients
 

@@ -7,6 +7,7 @@ import { useClients } from '@/shared/hooks/useClients'
 import { useCourts } from '@/shared/hooks/useCourts'
 import { TournamentService } from '@/infrastructure/database/tournamentService'
 import { UserService } from '@/infrastructure/database/userService'
+import { TournamentCalendarFactory } from '@/application/factories/TournamentCalendarFactory'
 
 // Tipos para el torneo
 export interface Player {
@@ -162,6 +163,24 @@ export default function CreateTournamentPage() {
     }
   }
 
+  // Función para convertir tipos locales a tipos de calendario
+  const convertToTournamentCalendarTypes = () => {
+    const calendarPlayers = tournamentData.players.map(player => ({
+      id: player.id,
+      name: `${player.name} ${player.lastName}`,
+      email: player.email,
+      phone: player.phone
+    }))
+
+    const calendarCourts = tournamentData.courts.map(court => ({
+      id: court.id,
+      name: court.name,
+      number: court.id // Usar el ID como número por ahora
+    }))
+
+    return { calendarPlayers, calendarCourts }
+  }
+
   const handleSubmit = async () => {
     if (!user) {
       setSubmitError('Usuario no autenticado')
@@ -180,6 +199,36 @@ export default function CreateTournamentPage() {
         return
       }
 
+      // Solo generar cuadro automáticamente si el formato es 'classic-americano'
+      let tournamentCalendar: any = null
+      if (tournamentData.format === 'classic-americano') {
+        try {
+          // Convertir tipos y generar cuadro automáticamente
+          const { calendarPlayers, calendarCourts } = convertToTournamentCalendarTypes()
+          
+          const tournamentService = TournamentCalendarFactory.create()
+          const calendarResult = tournamentService.generateTournament({
+            players: calendarPlayers,
+            courts: calendarCourts,
+            tournamentId: 'temp_id', // Se actualizará después
+            gamesPerRound: tournamentData.gamesPerRound,
+            format: tournamentData.format,
+            sitOutPoints: tournamentData.sitOutPoints
+          })
+
+          if (!calendarResult.success || !calendarResult.calendar) {
+            setSubmitError(calendarResult.error || 'Error al generar el cuadro del torneo')
+            return
+          }
+
+          tournamentCalendar = calendarResult.calendar
+        } catch (calendarError) {
+          console.error('Error al generar cuadro:', calendarError)
+          setSubmitError('Error al generar el cuadro automático del torneo')
+          return
+        }
+      }
+
       // Preparar datos para guardar en base de datos
       const tournamentDataForDB = {
         creator_id: userRecord.id,
@@ -195,7 +244,9 @@ export default function CreateTournamentPage() {
         games_per_round: tournamentData.gamesPerRound,
         ranking_criteria: tournamentData.rankingCriteria,
         sit_out_points: tournamentData.sitOutPoints,
-        status: 'draft' as const
+        status: 'active' as const,
+        // Agregar el cuadro generado si existe
+        matches: tournamentCalendar
       }
       
       // Guardar en base de datos
@@ -211,6 +262,12 @@ export default function CreateTournamentPage() {
         console.error('Error inesperado: no se devolvió el torneo creado')
         setSubmitError('Error inesperado al crear el torneo')
         return
+      }
+
+      // Si se generó un cuadro, actualizar el ID del torneo en el cuadro
+      if (tournamentCalendar && tournament.id) {
+        tournamentCalendar.tournamentId = tournament.id
+        // TODO: Actualizar el cuadro en la base de datos con el ID correcto
       }
       
       // Redirigir al dashboard
@@ -832,6 +889,51 @@ function CourtsStep({ data, onUpdate }: { data: TournamentData; onUpdate: (updat
 
 // Componente: Configuración del Torneo
 function ConfigurationStep({ data, onUpdate }: { data: TournamentData; onUpdate: (updates: Partial<TournamentData>) => void }) {
+  // Calcular estadísticas del torneo para mostrar información útil
+  const tournamentService = TournamentCalendarFactory.create()
+  
+  let tournamentStats = null
+  let validationError = null
+  
+  try {
+    if (data.players.length >= 4 && data.courts.length > 0) {
+      // Convertir tipos para el cálculo
+      const calendarPlayers = data.players.map(player => ({
+        id: player.id,
+        name: `${player.name} ${player.lastName}`,
+        email: player.email,
+        phone: player.phone
+      }))
+      
+      const calendarCourts = data.courts.map(court => ({
+        id: court.id,
+        name: court.name,
+        number: court.id
+      }))
+      
+      // Validar configuración
+      const validation = tournamentService.validateTournamentGeneration(
+        calendarPlayers,
+        calendarCourts,
+        data.format,
+        data.gamesPerRound
+      )
+      
+      if (!validation.isValid) {
+        validationError = validation.error
+      } else {
+        // Calcular estadísticas si la validación es exitosa
+        tournamentStats = tournamentService.calculateTournamentStats(
+          calendarPlayers,
+          data.gamesPerRound,
+          data.format
+        )
+      }
+    }
+  } catch (error) {
+    console.error('Error calculando estadísticas del torneo:', error)
+  }
+
   return (
     <div className="step-content">
       <h2>Configuración del Torneo</h2>
@@ -913,6 +1015,51 @@ function ConfigurationStep({ data, onUpdate }: { data: TournamentData; onUpdate:
           </div>
         </div>
       </div>
+
+      {/* Mostrar error de validación si existe */}
+      {validationError && (
+        <div className="error-box">
+          <h4>⚠️ Error de Configuración</h4>
+          <p>{validationError}</p>
+        </div>
+      )}
+
+      {/* Mostrar estadísticas del torneo si están disponibles */}
+      {tournamentStats && data.format === 'classic-americano' && (
+        <div className="info-box">
+          <h4>📊 Estadísticas del Torneo Classic Americano</h4>
+          <div className="stats-grid">
+            <div className="stat-item">
+              <strong>Total de Rondas:</strong> {tournamentStats.totalRounds}
+            </div>
+            <div className="stat-item">
+              <strong>Total de Partidos:</strong> {tournamentStats.totalMatches}
+            </div>
+            <div className="stat-item">
+              <strong>Duración Estimada:</strong> {tournamentStats.estimatedDuration}
+            </div>
+            <div className="stat-item">
+              <strong>Partidos Simultáneos:</strong> {tournamentStats.maxSimultaneousMatches}
+            </div>
+          </div>
+          <p><strong>Nota:</strong> En el formato Classic Americano, las parejas rotan cada ronda para que todos jueguen con diferentes compañeros.</p>
+        </div>
+      )}
+
+      {/* Información específica para Classic Americano */}
+      {data.format === 'classic-americano' && data.players.length > 0 && (
+        <div className="info-box">
+          <h4>ℹ️ Información del Classic Americano</h4>
+          <ul>
+            <li><strong>Rotación de parejas:</strong> Cada ronda se forman nuevas parejas automáticamente</li>
+            <li><strong>Jugadores por partido:</strong> 4 jugadores (2 parejas)</li>
+            {data.players.length % 4 !== 0 && (
+              <li><strong>Jugadores que descansan:</strong> {data.players.length % 4} jugador(es) rotarán el descanso</li>
+            )}
+            <li><strong>Pistas necesarias:</strong> Mínimo {Math.floor(data.players.length / 4)} pista(s) para {data.players.length} jugadores</li>
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

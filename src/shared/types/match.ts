@@ -60,3 +60,40 @@ export interface CalendarGenerationResult {
   calendar?: LeagueCalendar
   error?: string
 }
+
+// Tipos específicos para torneos
+export interface TournamentMatch extends Match {
+  gameNumber?: number // Para identificar el juego dentro de la ronda
+  sitOutPlayers?: Player[] // Jugadores que descansan en esta ronda
+}
+
+export interface TournamentRound {
+  roundNumber: number
+  matches: TournamentMatch[]
+  sitOutPlayers: Player[] // Jugadores que descansan en esta ronda completa
+}
+
+export interface TournamentCalendar {
+  tournamentId: string
+  rounds: TournamentRound[]
+  totalMatches: number
+  totalRounds: number
+  gamesPerRound: number
+  format: 'classic-americano' | 'mixed-americano' | 'team-americano'
+}
+
+// Parámetros para la generación de torneos
+export interface TournamentGenerationParams {
+  players: Player[]
+  courts: Court[]
+  tournamentId: string
+  gamesPerRound: number
+  format: 'classic-americano' | 'mixed-americano' | 'team-americano'
+  sitOutPoints: number
+}
+
+export interface TournamentGenerationResult {
+  success: boolean
+  calendar?: TournamentCalendar
+  error?: string
+}

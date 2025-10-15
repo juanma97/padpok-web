@@ -257,6 +257,8 @@ const TournamentCard = memo(function TournamentCard({
   tournament: any; 
   formatDate: (date: string) => string 
 }) {
+  const router = useRouter()
+  
   return (
     <div className={`league-card ${tournament.status}`}>
       <div className="league-header">
@@ -287,40 +289,32 @@ const TournamentCard = memo(function TournamentCard({
                tournament.format === 'mixed-americano' ? 'Mixed Americano' : 'Team Americano'}
             </span>
           </div>
-          {tournament.status === 'active' && (
-            <>
-              <div className="detail-item">
-                <span className="detail-label">👥 Jugadores:</span>
-                <span className="detail-value">{Array.isArray(tournament.players) ? tournament.players.length : 0}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">🎾 Pistas:</span>
-                <span className="detail-value">{Array.isArray(tournament.courts) ? tournament.courts.length : 0}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">🎯 Juegos/Ronda:</span>
-                <span className="detail-value">{tournament.games_per_round}</span>
-              </div>
-            </>
-          )}
+          <>
+            <div className="detail-item">
+              <span className="detail-label">👥 Jugadores:</span>
+              <span className="detail-value">{Array.isArray(tournament.players) ? tournament.players.length : 0}</span>
+            </div>
+            <div className="detail-item">
+              <span className="detail-label">🎾 Pistas:</span>
+              <span className="detail-value">{Array.isArray(tournament.courts) ? tournament.courts.length : 0}</span>
+            </div>
+            <div className="detail-item">
+              <span className="detail-label">🎯 Juegos/Ronda:</span>
+              <span className="detail-value">{tournament.games_per_round}</span>
+            </div>
+          </>
         </div>
       </div>
       <div className="league-actions">
-        {tournament.status === 'active' && (
-          <>
-            <button className="action-btn secondary">Ver Detalles</button>
-            <button className="action-btn primary">Gestionar</button>
-          </>
-        )}
-        {tournament.status === 'draft' && (
-          <>
-            <button className="action-btn secondary">Editar</button>
-            <button className="action-btn primary">Activar</button>
-          </>
-        )}
-        {tournament.status === 'completed' && (
-          <button className="action-btn secondary">Ver Resultados</button>
-        )}
+        <>
+          <button 
+            className="action-btn secondary"
+            onClick={() => router.push(`/tournament/${tournament.id}`)}
+          >
+            Ver Detalles
+          </button>
+          <button className="action-btn primary">Gestionar</button>
+        </>
       </div>
     </div>
   )
@@ -457,12 +451,12 @@ const LeaguesView = memo(function LeaguesView() {
 })
 
 const TournamentsView = memo(function TournamentsView() {
-  const { tournaments, loading, error, getTournamentsByStatus, refetchTournaments } = useTournaments()
+  const { tournaments, loading, error, refetchTournaments } = useTournaments()
+  const router = useRouter()
   
-  // Memoizar filtros de torneos para evitar recálculos
-  const activeTournaments = useMemo(() => getTournamentsByStatus('active'), [getTournamentsByStatus])
-  const draftTournaments = useMemo(() => getTournamentsByStatus('draft'), [getTournamentsByStatus])
-  const completedTournaments = useMemo(() => getTournamentsByStatus('completed'), [getTournamentsByStatus])
+  // Por defecto todos los torneos están activos, así que solo mostramos todos los torneos
+  // Memoizar la lista de torneos (todos activos por defecto)
+  const activeTournaments = useMemo(() => tournaments, [tournaments])
 
   // Memoizar función de formateo
   const formatDate = useCallback((dateString: string) => {
@@ -517,68 +511,31 @@ const TournamentsView = memo(function TournamentsView() {
           <div className="empty-icon">🏆</div>
           <h3>No tienes torneos creados</h3>
           <p>Crea tu primer torneo para empezar a organizar competiciones</p>
-          <button className="action-btn primary">
+          <button 
+            className="action-btn primary"
+            onClick={() => router.push('/create-tournament')}
+          >
             Crear Primer Torneo
           </button>
         </div>
       ) : (
         <div className="leagues-sections">
-          {/* Torneos Activos */}
-          {activeTournaments.length > 0 && (
-            <div className="leagues-section">
-              <h3 className="section-title">
-                <span className="status-indicator active"></span>
-                Torneos Activos ({activeTournaments.length})
-              </h3>
-              <div className="leagues-grid">
-                {activeTournaments.map((tournament) => (
-                  <TournamentCard 
-                    key={tournament.id} 
-                    tournament={tournament} 
-                    formatDate={formatDate}
-                  />
-                ))}
-              </div>
+          {/* Todos los Torneos (por defecto activos) */}
+          <div className="leagues-section">
+            <h3 className="section-title">
+              <span className="status-indicator active"></span>
+              Mis Torneos ({activeTournaments.length})
+            </h3>
+            <div className="leagues-grid">
+              {activeTournaments.map((tournament) => (
+                <TournamentCard 
+                  key={tournament.id} 
+                  tournament={tournament} 
+                  formatDate={formatDate}
+                />
+              ))}
             </div>
-          )}
-
-          {/* Torneos en Borrador */}
-          {draftTournaments.length > 0 && (
-            <div className="leagues-section">
-              <h3 className="section-title">
-                <span className="status-indicator draft"></span>
-                Borradores ({draftTournaments.length})
-              </h3>
-              <div className="leagues-grid">
-                {draftTournaments.map((tournament) => (
-                  <TournamentCard 
-                    key={tournament.id} 
-                    tournament={tournament} 
-                    formatDate={formatDate}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Torneos Completados */}
-          {completedTournaments.length > 0 && (
-            <div className="leagues-section">
-              <h3 className="section-title">
-                <span className="status-indicator completed"></span>
-                Completados ({completedTournaments.length})
-              </h3>
-              <div className="leagues-grid">
-                {completedTournaments.map((tournament) => (
-                  <TournamentCard 
-                    key={tournament.id} 
-                    tournament={tournament} 
-                    formatDate={formatDate}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
     </div>

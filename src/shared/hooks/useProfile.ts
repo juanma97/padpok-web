@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/infrastructure/database/supabase'
-import { Profile, ProfileInsert } from '@/shared/types/database'
+import { User, UserInsert, UserUpdate } from '@/shared/types/database'
 import { useAuth } from './useAuth'
 
 interface ProfileState {
-  profile: Profile | null
+  profile: User | null
   loading: boolean
   error: string | null
 }
@@ -32,7 +32,7 @@ export const useProfile = () => {
       setProfileState(prev => ({ ...prev, loading: true, error: null }))
       
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('id', userId)
         .single()
@@ -60,12 +60,12 @@ export const useProfile = () => {
     }
   }
 
-  const createProfile = async (profileData: ProfileInsert) => {
+  const createProfile = async (profileData: UserInsert) => {
     try {
       setProfileState(prev => ({ ...prev, loading: true, error: null }))
       
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .insert(profileData)
         .select()
         .single()
@@ -97,7 +97,7 @@ export const useProfile = () => {
     }
   }
 
-  const updateProfile = async (updates: Partial<Profile>) => {
+  const updateProfile = async (updates: UserUpdate) => {
     if (!user) {
       return { profile: null, error: 'Usuario no autenticado' }
     }
@@ -106,11 +106,8 @@ export const useProfile = () => {
       setProfileState(prev => ({ ...prev, loading: true, error: null }))
       
       const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .from('users')
+        .update(updates)
         .eq('id', user.id)
         .select()
         .single()
@@ -151,7 +148,7 @@ export const useProfile = () => {
       setProfileState(prev => ({ ...prev, loading: true, error: null }))
       
       const { error } = await supabase
-        .from('profiles')
+        .from('users')
         .delete()
         .eq('id', user.id)
 

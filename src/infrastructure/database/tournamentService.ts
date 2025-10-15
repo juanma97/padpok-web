@@ -15,6 +15,7 @@ interface TournamentData {
   ranking_criteria: 'points' | 'wins'
   sit_out_points: number
   status?: 'draft' | 'active' | 'completed' | 'cancelled'
+  matches?: any // Cuadro del torneo generado automáticamente
 }
 
 interface TournamentRecord extends TournamentData {
@@ -24,6 +25,21 @@ interface TournamentRecord extends TournamentData {
 }
 
 export class TournamentService {
+  /**
+   * Función auxiliar para parsear JSON de forma segura
+   */
+  private static safeJsonParse(jsonString: any, defaultValue: any = []): any {
+    if (!jsonString || jsonString === '' || jsonString === 'null' || jsonString === '{}') {
+      return defaultValue
+    }
+    
+    try {
+      return JSON.parse(jsonString)
+    } catch (error) {
+      console.warn('Error parsing JSON, using default value:', error)
+      return defaultValue
+    }
+  }
   /**
    * Crea un nuevo torneo en la base de datos
    */
@@ -38,6 +54,7 @@ export class TournamentService {
           status: tournamentData.status || 'draft',
           players: JSON.stringify(tournamentData.players),
           courts: JSON.stringify(tournamentData.courts),
+          matches: tournamentData.matches ? JSON.stringify(tournamentData.matches) : '[]',
           created_at: now,
           updated_at: now
         })
@@ -52,8 +69,9 @@ export class TournamentService {
       // Parsear los campos JSON de vuelta
       const tournament = {
         ...data,
-        players: JSON.parse(data.players),
-        courts: JSON.parse(data.courts)
+        players: this.safeJsonParse(data.players, []),
+        courts: this.safeJsonParse(data.courts, []),
+        matches: this.safeJsonParse(data.matches, [])
       } as TournamentRecord
 
       return { tournament, error: null }
@@ -85,8 +103,9 @@ export class TournamentService {
       // Parsear los campos JSON
       const tournament = {
         ...data,
-        players: JSON.parse(data.players),
-        courts: JSON.parse(data.courts)
+        players: this.safeJsonParse(data.players, []),
+        courts: this.safeJsonParse(data.courts, []),
+        matches: this.safeJsonParse(data.matches, [])
       } as TournamentRecord
 
       return { tournament, error: null }
@@ -115,8 +134,9 @@ export class TournamentService {
       // Parsear los campos JSON para cada torneo
       const tournaments = (data || []).map((tournament: any) => ({
         ...tournament,
-        players: JSON.parse(tournament.players),
-        courts: JSON.parse(tournament.courts)
+        players: this.safeJsonParse(tournament.players, []),
+        courts: this.safeJsonParse(tournament.courts, []),
+        matches: this.safeJsonParse(tournament.matches, [])
       })) as TournamentRecord[]
 
       return { tournaments, error: null }
@@ -131,7 +151,7 @@ export class TournamentService {
    */
   static async updateTournament(id: string, updates: Partial<TournamentData>): Promise<{ tournament: TournamentRecord | null; error: string | null }> {
     try {
-      const updateData = {
+      const updateData: any = {
         ...updates,
         updated_at: new Date().toISOString()
       }
@@ -142,6 +162,9 @@ export class TournamentService {
       }
       if (updates.courts) {
         updateData.courts = JSON.stringify(updates.courts)
+      }
+      if (updates.matches) {
+        updateData.matches = JSON.stringify(updates.matches)
       }
 
       const { data, error } = await (supabase as any)
@@ -159,8 +182,9 @@ export class TournamentService {
       // Parsear los campos JSON
       const tournament = {
         ...data,
-        players: JSON.parse(data.players),
-        courts: JSON.parse(data.courts)
+        players: this.safeJsonParse(data.players, []),
+        courts: this.safeJsonParse(data.courts, []),
+        matches: this.safeJsonParse(data.matches, [])
       } as TournamentRecord
 
       return { tournament, error: null }
@@ -213,8 +237,9 @@ export class TournamentService {
       // Parsear los campos JSON para cada torneo
       const tournaments = (data || []).map((tournament: any) => ({
         ...tournament,
-        players: JSON.parse(tournament.players),
-        courts: JSON.parse(tournament.courts)
+        players: this.safeJsonParse(tournament.players, []),
+        courts: this.safeJsonParse(tournament.courts, []),
+        matches: this.safeJsonParse(tournament.matches, [])
       })) as TournamentRecord[]
 
       return { tournaments, error: null }
@@ -250,8 +275,9 @@ export class TournamentService {
       // Parsear los campos JSON
       const tournament = {
         ...data,
-        players: JSON.parse(data.players),
-        courts: JSON.parse(data.courts)
+        players: this.safeJsonParse(data.players, []),
+        courts: this.safeJsonParse(data.courts, []),
+        matches: this.safeJsonParse(data.matches, [])
       } as TournamentRecord
 
       return { tournament, error: null }

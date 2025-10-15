@@ -4,10 +4,29 @@ import { useState, useEffect } from 'react'
 import { useAuth } from './useAuth'
 import { TournamentService } from '@/infrastructure/database/tournamentService'
 import { UserService } from '@/infrastructure/database/userService'
-import type { Tournament } from '@/shared/types/database'
+interface TournamentRecord {
+  id: string
+  creator_id: string
+  title: string
+  description?: string | null
+  date: string
+  time: string
+  location: string
+  format: 'classic-americano' | 'mixed-americano' | 'team-americano'
+  player_management: 'manual' | 'link'
+  players: any[]
+  courts: any[]
+  games_per_round: number
+  ranking_criteria: 'points' | 'wins'
+  sit_out_points: number
+  status?: 'draft' | 'active' | 'completed' | 'cancelled'
+  created_at: string
+  updated_at: string
+  matches?: any
+}
 
 interface TournamentsState {
-  tournaments: Tournament[]
+  tournaments: TournamentRecord[]
   loading: boolean
   error: string | null
 }
