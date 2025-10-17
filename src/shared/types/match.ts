@@ -26,14 +26,22 @@ export interface Match {
   pair2: Pair
   court: Court
   status: 'pending' | 'completed' | 'cancelled'
-  result?: {
-    winner: 'pair1' | 'pair2'
-    score: string
-    sets?: {
-      pair1: number
-      pair2: number
-    }
-  }
+  result?: MatchResult
+}
+
+export interface MatchResult {
+  winner: 'pair1' | 'pair2' | 'draw'
+  score_pair1: number
+  score_pair2: number
+  sets?: MatchSet[]
+  completed_at?: string
+  notes?: string
+}
+
+export interface MatchSet {
+  set_number: number
+  pair1_games: number
+  pair2_games: number
 }
 
 export interface Round {
@@ -48,7 +56,6 @@ export interface LeagueCalendar {
   totalRounds: number
 }
 
-// Tipos para la generación del calendario
 export interface CalendarGenerationParams {
   players: Player[]
   courts: Court[]
@@ -61,10 +68,9 @@ export interface CalendarGenerationResult {
   error?: string
 }
 
-// Tipos específicos para torneos
 export interface TournamentMatch extends Match {
-  gameNumber?: number // Para identificar el juego dentro de la ronda
-  sitOutPlayers?: Player[] // Jugadores que descansan en esta ronda
+  gameNumber?: number
+  sitOutPlayers?: Player[]
 }
 
 export interface TournamentRound {
@@ -95,5 +101,43 @@ export interface TournamentGenerationParams {
 export interface TournamentGenerationResult {
   success: boolean
   calendar?: TournamentCalendar
+  error?: string
+}
+
+// Tipos para el sistema de ranking
+export interface PlayerRanking {
+  playerId: string
+  playerName: string
+  position: number
+  points: number
+  matchesPlayed: number
+  matchesWon: number
+  matchesLost: number
+  matchesDrawn: number
+  setsWon: number
+  setsLost: number
+  gamesWon: number
+  gamesLost: number
+  winPercentage: number
+}
+
+export interface LeagueRanking {
+  leagueId: string
+  rankingType: 'points' | 'win-percentage' | 'sets-difference'
+  players: PlayerRanking[]
+  lastUpdated: string
+}
+
+// Tipos para actualización de resultados
+export interface UpdateMatchResultParams {
+  matchId: string
+  leagueId: string
+  result: MatchResult
+}
+
+export interface UpdateMatchResultResponse {
+  success: boolean
+  updatedMatch?: Match
+  updatedRanking?: LeagueRanking
   error?: string
 }
